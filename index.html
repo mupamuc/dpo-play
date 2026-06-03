@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Центр ДПО: выживи до отчёта</title>
+<style>
+  /* ===== Палитра: тёмный фон + фирменный индиго ПИШ (#4547bb) + тёплый кофейный акцент ===== */
+  :root{
+    --bg:#0c0c14;
+    --bg2:#10101b;
+    --panel:#16161f;
+    --panel2:#1d1d2a;
+    --line:#2a2a3a;
+    --brand:#4547bb;       /* фирменный синий ПИШ */
+    --brand-lt:#6b6df0;
+    --coffee:#d98a4e;      /* тёплый кофейный акцент */
+    --text:#e9e9f2;
+    --muted:#9a9ab0;
+    --danger:#e0566b;
+    --good:#56c596;
+    --coffee-c:#d98a4e;
+    --budget-c:#56c596;
+    --boss-c:#6b6df0;
+    --burn-c:#e0566b;
+    --shadow:0 22px 60px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:
+      radial-gradient(1200px 700px at 50% -10%, #1b1b40 0%, transparent 60%),
+      radial-gradient(900px 600px at 50% 120%, #241627 0%, transparent 55%),
+      var(--bg);
+    color:var(--text);
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;
+    user-select:none;
+  }
+  #app{
+    width:min(440px,100vw);
+    height:min(860px,100vh);
+    height:min(860px,100dvh);   /* мобильный Safari/Chrome: корректная высота с учётом адресной строки */
+    display:flex;flex-direction:column;
+    position:relative;
+    padding:14px 16px 18px;
+  }
+
+  /* ===== Шапка со шкалами ===== */
+  #hud{display:flex;flex-direction:column;gap:12px;flex:0 0 auto}
+  #scales{display:flex;gap:10px}
+  .scale{flex:1;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);
+    border-radius:18px;padding:12px 9px 10px;position:relative;transition:transform .15s, box-shadow .2s}
+  .scale .ico{font-size:26px;text-align:center;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
+  .scale .bar{height:10px;border-radius:7px;background:#06060c;margin-top:9px;overflow:hidden;position:relative;box-shadow:inset 0 1px 2px rgba(0,0,0,.7)}
+  .scale .fill{position:absolute;inset:0 auto 0 0;border-radius:7px;transition:width .45s cubic-bezier(.2,.8,.2,1);box-shadow:0 0 10px currentColor}
+  /* подпись под шкалой — что означает; скрывается на 3-м шаге */
+  .scale .lab{font-size:11px;font-weight:600;text-align:center;margin-top:7px;color:var(--muted);
+    letter-spacing:.2px;line-height:1.15;max-height:52px;opacity:1;overflow:hidden;
+    transition:max-height .45s ease, opacity .35s ease, margin-top .45s ease}
+  #scales.compact .lab{max-height:0;opacity:0;margin-top:0}
+  .scale[data-k="coffee"] .lab{color:var(--coffee-c)}
+  .scale[data-k="budget"] .lab{color:var(--budget-c)}
+  .scale[data-k="boss"]   .lab{color:var(--boss-c)}
+  .scale[data-k="burn"]   .lab{color:var(--burn-c)}
+  .scale .lab span{display:inline-block;font-weight:400;font-size:9.5px;color:#8a8f98;letter-spacing:0;margin-top:1px}
+  /* числовое значение ресурса под полоской (стильное, некрупное) */
+  .scale .val{font-size:13px;font-weight:800;text-align:center;margin-top:6px;font-variant-numeric:tabular-nums;letter-spacing:.5px;opacity:.92}
+  .scale[data-k="coffee"] .val{color:var(--coffee-c)}
+  .scale[data-k="budget"] .val{color:var(--budget-c)}
+  .scale[data-k="boss"]   .val{color:var(--boss-c)}
+  .scale[data-k="burn"]   .val{color:var(--burn-c)}
+  .scale[data-k="coffee"] .fill{background:linear-gradient(90deg,#b06a2e,var(--coffee-c));color:var(--coffee-c)}
+  .scale[data-k="budget"] .fill{background:linear-gradient(90deg,#2e9e6e,var(--budget-c));color:var(--budget-c)}
+  .scale[data-k="boss"]   .fill{background:linear-gradient(90deg,var(--brand),var(--boss-c));color:var(--boss-c)}
+  .scale[data-k="burn"]   .fill{background:linear-gradient(90deg,#a23348,var(--burn-c));color:var(--burn-c)}
+  /* мигание в опасной зоне */
+  .scale.danger{animation:flash .8s infinite alternate}
+  .scale.danger .ico{filter:none}
+  @keyframes flash{from{box-shadow:0 0 0 0 rgba(224,86,107,.0);border-color:var(--line)}to{box-shadow:0 0 16px 1px rgba(224,86,107,.55);border-color:var(--danger)}}
+  /* подсветка затрагиваемой шкалы (превью на свайпе) */
+  .scale.affect{transform:translateY(-3px) scale(1.04)}
+  .scale.affect .ico{transform:scale(1.18);transition:transform .15s}
+  .scale.affect::after{content:"";position:absolute;inset:-2px;border-radius:15px;border:1.5px solid var(--coffee);box-shadow:0 0 14px rgba(217,138,78,.6);pointer-events:none}
+  /* ИЗИ-МОД: подсветка эффекта зелёным (хорошо) / красным (плохо), без чисел */
+  .scale.affect.good::after{border-color:var(--good);box-shadow:0 0 16px rgba(86,197,150,.7)}
+  .scale.affect.bad::after{border-color:var(--danger);box-shadow:0 0 16px rgba(224,86,107,.7)}
+  .scale.affect.good .ico, .scale.affect.bad .ico{filter:none}
+
+  /* тост-уведомление (например, получено звание) */
+  #toast{position:absolute;top:118px;left:50%;transform:translateX(-50%) translateY(-12px);z-index:1100;
+    background:linear-gradient(180deg,#2a2440,#171528);border:1px solid var(--brand-lt);color:#fff;
+    padding:11px 18px;border-radius:14px;font-size:14px;font-weight:700;box-shadow:var(--shadow);
+    opacity:0;pointer-events:none;transition:opacity .3s, transform .3s;max-width:88%;text-align:center}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  #topline{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--muted);padding:0 2px}
+  #season{color:var(--brand-lt);font-weight:600;letter-spacing:.2px}
+  #daycount b{color:var(--text)}
+
+  /* ===== Зона карточки ===== */
+  #stage{flex:1;position:relative;display:flex;align-items:center;justify-content:center;margin:6px 0}
+  #card{
+    position:absolute;width:100%;max-width:360px;
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);
+    padding:0 0 16px;overflow:hidden;touch-action:none;cursor:grab;
+  }
+  #card.dragging{cursor:grabbing;transition:none;will-change:transform}
+  #card.anim{will-change:transform}
+  #card.anim{transition:transform .7s cubic-bezier(.2,.7,.3,1),opacity .7s;will-change:transform}
+  #card.anim-tilt{transition:transform .32s ease;will-change:transform}
+  #card.snap{transition:transform .28s ease}
+  .portrait{position:relative;height:236px;background:#0a0a12;overflow:hidden}
+  .portrait svg{width:100%;height:100%;display:block;opacity:.42;transition:filter .9s ease, transform .9s ease, opacity .6s ease}
+  .portrait img.art{width:100%;height:100%;object-fit:cover;display:block;transition:filter .9s ease, transform .9s ease}
+  #card.has-art .prompt-box{display:none}        /* есть фото — текст промта не нужен */
+  /* «новенький не понимает, кто есть кто»: мыло держится всю слепую фазу, спадает после выбора */
+  #card.blurred .portrait svg, #card.blurred .portrait img.art{filter:blur(11px) saturate(.7);transform:scale(1.1)}
+  .redact{color:var(--coffee);font-weight:700;letter-spacing:1px;background:rgba(217,138,78,.14);
+    border-radius:5px;padding:0 5px}                /* «???» вместо имени в слепой фазе */
+  .portrait .vign{position:absolute;inset:0;background:radial-gradient(120% 80% at 50% 30%,transparent 35%,rgba(0,0,0,.7) 100%);pointer-events:none}
+  /* заглушка вместо фото: текст арт-промта */
+  .prompt-box{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;text-align:center;padding:16px 18px 40px;pointer-events:none}
+  .prompt-box .ptag{font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;
+    color:var(--coffee);border:1px solid rgba(217,138,78,.45);border-radius:20px;padding:3px 11px;
+    margin-bottom:9px;background:rgba(10,10,18,.55)}
+  .prompt-box p{margin:0;font-size:12.5px;line-height:1.4;color:#dcdce8;font-style:italic;
+    text-shadow:0 2px 8px #000;max-width:300px}
+  .nameplate{position:absolute;left:12px;bottom:10px;display:flex;flex-direction:column;gap:2px}
+  .nameplate .nm{font-weight:700;font-size:15px;text-shadow:0 2px 6px #000}
+  .nameplate .loc{font-size:11px;color:var(--coffee);text-shadow:0 1px 4px #000;letter-spacing:.3px}
+  .ctext{padding:16px 18px 4px;font-size:16.5px;line-height:1.42;min-height:78px}
+  .ctext .intronote{display:block;color:var(--burn-c);font-size:13px;line-height:1.35;margin-bottom:8px}
+  /* всплывающие подсказки НЕТ/ДА при наклоне */
+  .swipe-tag{position:absolute;top:14px;font-weight:800;font-size:20px;letter-spacing:1px;padding:6px 12px;border-radius:10px;opacity:0;border:2px solid;backdrop-filter:blur(2px)}
+  .swipe-tag.no{left:14px;color:var(--danger);border-color:var(--danger);transform:rotate(-12deg)}
+  .swipe-tag.yes{right:14px;color:var(--good);border-color:var(--good);transform:rotate(12deg)}
+
+  /* ===== Кнопки ===== */
+  #choices{flex:0 0 auto;display:flex;gap:12px;padding-top:2px}
+  .choice{flex:1;border:1px solid var(--line);background:var(--panel);color:var(--text);
+    border-radius:16px;padding:14px 10px;font-size:15px;font-weight:600;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:3px;transition:transform .12s,background .15s,border-color .15s}
+  .choice small{font-size:11px;color:var(--muted);font-weight:500}
+  .choice .arr{font-size:12px;color:var(--muted)}
+  .choice.no:hover,.choice.no:active{border-color:var(--danger);background:#241820}
+  .choice.yes:hover,.choice.yes:active{border-color:var(--good);background:#16241f}
+  .choice:active{transform:scale(.97)}
+  .hint{text-align:center;font-size:11px;color:#5e5e74;padding-top:8px}
+
+  /* ===== Оверлеи ===== */
+  .overlay{position:absolute;inset:0;background:#0a0a12;
+    display:none;flex-direction:column;justify-content:center;padding:26px 24px;z-index:1000;overflow-y:auto}
+  /* во время оверлея прячем игровое поле — никаких просветов сквозь composited-слои */
+  #app.ending #hud, #app.ending #stage, #app.ending #choices, #app.ending .hint{visibility:hidden}
+  .overlay.show{display:flex;animation:fade .35s}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .overlay h1{font-size:26px;margin:0 0 4px;line-height:1.15}
+  .overlay h2{font-size:15px;color:var(--brand-lt);margin:0 0 16px;font-weight:600}
+  .overlay p{font-size:14.5px;line-height:1.5;color:#cdcde0;margin:0 0 14px}
+  .overlay .disc{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--brand);
+    border-radius:12px;padding:14px 16px;font-size:13.5px;line-height:1.55;color:#d6d6e6}
+  .overlay .disc em{color:var(--coffee);font-style:italic}
+  .bigemoji{font-size:54px;text-align:center;margin-bottom:6px;filter:drop-shadow(0 6px 16px rgba(0,0,0,.5))}
+  .btn{background:linear-gradient(180deg,var(--brand-lt),var(--brand));color:#fff;border:0;border-radius:14px;
+    padding:15px;font-size:16px;font-weight:700;cursor:pointer;width:100%;margin-top:8px;
+    box-shadow:0 10px 26px rgba(69,71,187,.45);transition:transform .12s,filter .15s}
+  .btn:active{transform:scale(.98)}
+  .btn:hover{filter:brightness(1.08)}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--muted);box-shadow:none;font-weight:600}
+  .stat-line{font-size:13px;color:var(--muted);text-align:center;margin-top:14px}
+  .stat-line b{color:var(--coffee)}
+
+  /* Тоггл изи-мода */
+  .toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;cursor:pointer}
+  .toggle .tlabel{font-size:14px;font-weight:600}
+  .toggle .tlabel small{display:block;font-size:11px;color:var(--muted);font-weight:400;margin-top:2px}
+  .toggle .sw{flex:0 0 auto;width:46px;height:26px;border-radius:14px;background:#2a2a3a;position:relative;transition:background .2s}
+  .toggle .sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .2s}
+  .toggle.on .sw{background:var(--good)}
+  .toggle.on .sw::after{left:23px}
+
+  /* Выбор эпизода (главное меню) */
+  .episodes{margin-top:12px}
+  .episodes h3{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin:0 0 8px;text-align:center}
+  .ep-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .ep{background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:12px;
+    padding:10px 8px;font-size:12.5px;font-weight:600;cursor:pointer;text-align:center;line-height:1.25;transition:border-color .15s,background .15s}
+  .ep:hover{border-color:var(--brand-lt);background:#1a1a2c}
+  .ep small{display:block;font-size:10px;color:var(--muted);font-weight:400;margin-top:2px}
+
+  /* Кнопка «Сдаюсь» во время игры (по центру под подсказкой) */
+  #btn-quit{display:block;margin:6px auto 0;background:transparent;border:1px solid var(--line);
+    color:var(--muted);border-radius:10px;padding:6px 14px;font-size:11.5px;font-weight:600;cursor:pointer;transition:color .15s,border-color .15s}
+  #btn-quit:hover{color:var(--danger);border-color:var(--danger)}
+  #app.ending #btn-quit{display:none}
+
+  /* Галерея концовок */
+  .gallery{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
+  .gallery h3{font-size:12px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin:0 0 10px;text-align:center}
+  .gal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .gal-cell{aspect-ratio:1;border-radius:12px;background:var(--panel);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-size:22px;position:relative}
+  .gal-cell.locked{color:#3a3a4a}
+  .gal-cell.unlocked{border-color:var(--brand);background:#1a1a2c}
+  .gal-cell .tt{position:absolute;bottom:-2px;left:50%;transform:translate(-50%,100%);
+    background:#000;border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-size:10px;
+    white-space:nowrap;color:#ddd;opacity:0;pointer-events:none;transition:opacity .15s;z-index:5}
+  .gal-cell:hover .tt{opacity:1}
+
+  /* мини-всплеск результата */
+  #flash-result{position:absolute;left:50%;top:auto;bottom:4%;transform:translateX(-50%) translateY(8px);
+    background:rgba(12,12,22,.96);border:1px solid var(--line);border-radius:14px;
+    padding:12px 18px;font-size:14.5px;max-width:320px;text-align:center;line-height:1.4;
+    box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .25s, transform .25s;z-index:15}
+  #flash-result.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #flash-result .deltas{display:flex;gap:14px;justify-content:center;font-weight:800;font-size:18px;margin-bottom:5px}
+  #flash-result .rtext{font-size:13.5px;color:#dcdce8}
+
+  @media (max-height:720px){
+    .portrait{height:180px}
+    .ctext{min-height:64px;font-size:15.5px}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HUD -->
+  <div id="hud">
+    <div id="topline">
+      <span id="season">Ноябрь–декабрь · Зимний университет</span>
+      <span id="daycount">День <b>1</b></span>
+    </div>
+    <div id="scales">
+      <div class="scale" data-k="coffee"><div class="ico">☕</div><div class="bar"><div class="fill"></div></div><div class="val">50</div><div class="lab">Кофе<br><span>мораль отдела</span></div></div>
+      <div class="scale" data-k="budget"><div class="ico">💰</div><div class="bar"><div class="fill"></div></div><div class="val">50</div><div class="lab">Бюджет<br><span>деньги Г.3.09</span></div></div>
+      <div class="scale" data-k="boss"><div class="ico">👔</div><div class="bar"><div class="fill"></div></div><div class="val">50</div><div class="lab">Лояльность<br><span>боссы</span></div></div>
+      <div class="scale" data-k="burn"><div class="ico">🔥</div><div class="bar"><div class="fill"></div></div><div class="val">50</div><div class="lab">Выгорание<br><span>дедлайн-стресс</span></div></div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <!-- Карточка -->
+  <div id="stage">
+    <div id="card">
+      <div class="portrait">
+        <div id="portrait-svg"></div>
+        <div class="prompt-box"><span class="ptag">🎨 промт картинки</span><p id="c-prompt"></p></div>
+        <div class="vign"></div>
+        <div class="swipe-tag no">НЕТ</div>
+        <div class="swipe-tag yes">ДА</div>
+        <div class="nameplate"><span class="nm" id="c-name"></span><span class="loc" id="c-loc"></span></div>
+      </div>
+      <div class="ctext" id="c-text"></div>
+    </div>
+    <div id="flash-result"></div>
+  </div>
+
+  <!-- Кнопки -->
+  <div id="choices">
+    <button class="choice no" id="btn-no"><span class="arr">← смахни влево</span><span id="lbl-no">НЕТ</span></button>
+    <button class="choice yes" id="btn-yes"><span class="arr">смахни вправо →</span><span id="lbl-yes">ДА</span></button>
+  </div>
+  <div class="hint">Тяни карточку · ← / → · или кнопки. Иконки сверху подсветятся — куда дёрнет.</div>
+  <button id="btn-quit">🏳️ Сдаюсь · выйти в меню</button>
+
+  <!-- Старт / дисклеймер -->
+  <div class="overlay" id="ov-start">
+    <h1>Центр ДПО</h1>
+    <h2>выживи до отчёта</h2>
+    <div class="disc">
+      <b>ВНИМАНИЕ.</b> Все совпадения с реальными людьми, кабинетами, отчётами и количеством выпитого кофе — <b>случайны. Не случайно. Так и было задумано. Такова жизнь.</b><br><br>
+      Эта игра — любовное письмо отделу, написанное его же сообщениями. Если вы узнали себя — поздравляем, вы канонический персонаж. Если не узнали — значит, вы Дмитрий Сачава, и все в шоке, что вы ещё живы.<br><br>
+      <em>Материалы игры подготовлены без поддержки гранта Минобрнауки, в рамках Десятилетия прокрастинации и технологий.</em>
+    </div>
+    <button class="btn" id="btn-start">Начать рабочий день</button>
+
+    <div class="toggle" id="easy-toggle">
+      <span class="tlabel">🌴 Изи-мод<small>летний режим работы: подсветка эффекта зелёным/красным при наведении</small></span>
+      <span class="sw"></span>
+    </div>
+
+    <div class="episodes">
+      <h3>Эпизоды — начать с сезона</h3>
+      <div class="ep-grid" id="ep-grid"></div>
+    </div>
+
+    <div class="stat-line">4 шкалы · старт 50 · Конец при 0 или 100. Лечишь одно — ломаешь другое.</div>
+  </div>
+
+  <!-- Конец игры -->
+  <div class="overlay" id="ov-end">
+    <div class="bigemoji" id="end-emoji">💀</div>
+    <h1 id="end-title"></h1>
+    <h2 id="end-sub"></h2>
+    <p id="end-text"></p>
+    <div class="stat-line">Продержался: <b id="end-days">0</b> дней</div>
+    <button class="btn" id="btn-restart">Начать заново</button>
+    <button class="btn ghost" id="btn-menu">В главное меню</button>
+    <div class="gallery">
+      <h3>Галерея концовок</h3>
+      <div class="gal-grid" id="gal-grid"></div>
+      <h3 style="margin-top:16px">Звания</h3>
+      <div class="gal-grid" id="gal-ach"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   ЦЕНТР ДПО: выживи до отчёта — MVP-движок (Reigns-like)
+   Один файл, без зависимостей. Все тексты/числа — из КАРТОЧКИ_ДПО.md
+   ============================================================ */
+
+/* ---------- Персонажи (SVG-заглушки: портрет-силуэт + атрибут) ---------- */
+const CHARS = {
+  lena:     {name:"Лена",                 attr:"📝", c1:"#3a3a7a", c2:"#6b6df0"},
+  salk:     {name:"Сергей Владимирович",  attr:"🧣", c1:"#26406e", c2:"#4f8fd6"},
+  natalya:  {name:"Наталья",              attr:"🫙", c1:"#5a3a2a", c2:"#d98a4e"},
+  lyudmila: {name:"Людмила",              attr:"🍰", c1:"#5a2a48", c2:"#e07ba8"},
+  zhenya:   {name:"Женя Савинова",        attr:"🎁", c1:"#2a5a4a", c2:"#56c596"},
+  anton:    {name:"Антон Амбражей",       attr:"🍷", c1:"#5a2a2a", c2:"#e0566b"},
+  alina:    {name:"Алина",                attr:"💻", c1:"#264a5a", c2:"#4fc6d6"},
+  andrey:   {name:"Андрей",               attr:"☕", c1:"#4a3a26", c2:"#c69a4f"},
+  efimov:   {name:"Ефимов",               attr:"📱", c1:"#3a3a4a", c2:"#9a9ab0"},
+  socio:    {name:"СОЦИОЦЕНТР",           attr:"🏛️", c1:"#1a1a2e", c2:"#6b6df0"},
+  borovkov: {name:"Боровков",             attr:"🛰️", c1:"#1c2e52", c2:"#4f8fd6"},
+  oleg:     {name:"Олег Рождественский",  attr:"📄", c1:"#3a1a1a", c2:"#e0566b"},
+  tetki:    {name:"Заказчики ИРАО",        attr:"💅", c1:"#4a2a40", c2:"#e07ba8"},
+  peter:    {name:"Пётр",                 attr:"👑", c1:"#3a2e1a", c2:"#d9b84e"},
+  buh:      {name:"Бухгалтерия",          attr:"🧮", c1:"#26402e", c2:"#56c596"},
+  vlad:     {name:"Влад",                 attr:"🎤", c1:"#2a3a5a", c2:"#6b9bd6"},
+};
+
+/* Генератор SVG-портрета в духе Reigns (рамка, силуэт, атрибут-бейдж) */
+function portraitSVG(charId){
+  const c = CHARS[charId] || CHARS.lena;
+  const initials = c.name.split(" ").map(w=>w[0]).slice(0,2).join("");
+  return `
+  <svg viewBox="0 0 360 230" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="bg-${charId}" cx="50%" cy="32%" r="80%">
+        <stop offset="0%" stop-color="${c.c2}" stop-opacity=".55"/>
+        <stop offset="55%" stop-color="${c.c1}" stop-opacity=".9"/>
+        <stop offset="100%" stop-color="#07070e"/>
+      </radialGradient>
+      <linearGradient id="sil-${charId}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#0d0d18" stop-opacity=".25"/>
+        <stop offset="100%" stop-color="#05050a" stop-opacity=".95"/>
+      </linearGradient>
+      <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" result="n"/>
+        <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .05 0"/></filter>
+    </defs>
+    <rect width="360" height="230" fill="url(#bg-${charId})"/>
+    <!-- силуэт: плечи + голова -->
+    <g fill="url(#sil-${charId})" stroke="${c.c2}" stroke-opacity=".5" stroke-width="1.5">
+      <ellipse cx="180" cy="98" rx="46" ry="52"/>
+      <path d="M84 230 Q92 150 180 150 Q268 150 276 230 Z"/>
+    </g>
+    <!-- инициалы на «лице» -->
+    <text x="180" y="112" text-anchor="middle" font-size="40" font-weight="800"
+          fill="#fff" fill-opacity=".82" font-family="-apple-system,Segoe UI,Roboto,sans-serif">${initials}</text>
+    <!-- атрибут-бейдж -->
+    <g>
+      <circle cx="300" cy="48" r="26" fill="#0a0a14" stroke="${c.c2}" stroke-width="2"/>
+      <text x="300" y="58" text-anchor="middle" font-size="26">${c.attr}</text>
+    </g>
+    <rect width="360" height="230" filter="url(#grain)" opacity=".5"/>
+  </svg>`;
+}
+
+/* ---------- Карточки ----------
+   fx-ключи: coffee ☕, budget 💰, boss 👔, burn 🔥 (дельты к шкале)
+   quest:"winter" step:N — сквозной квест; quest:null — флавор
+   Тексты и числа взяты дословно из КАРТОЧКИ_ДПО.md
+*/
+const CARDS = [
+  /* ===== КВЕСТ «ЗИМНИЙ УНИВЕРСИТЕТ» Z1–Z5 ===== */
+  { id:"Z1", quest:"winter", step:1, char:"lena", loc:"Г.3.09",
+    text:"Коллеги, упал документ по Зимнему университету. Открываем?",
+    no:  { label:"Потом", fx:{burn:+20, boss:-15}, result:"Документ всплывёт в худший момент." },
+    yes: { label:"Открыть", fx:{boss:+6, burn:+4}, result:"Поехали." } },
+
+  { id:"Z2", quest:"winter", step:2, char:"salk", loc:"Г.3.09",
+    text:"Кого ставим руководителем мероприятия — меня или закинем Антону Николаевичу?",
+    no:  { label:"Антон Н.", fx:{burn:+22, coffee:+5, boss:-8}, result:"Он завалит чат новостями вместо плана." },
+    yes: { label:"Сергей В.", fx:{boss:+10, burn:-4}, result:"Опытный, всех помирит." } },
+
+  { id:"Z3", quest:"winter", step:3, char:"natalya", loc:"1 корпус",
+    text:"Беру термос с кофе на площадку. И ещё рислинг — поставить на документы, чтобы быстрее подписали. Берём?",
+    no:  { label:"Рислинг", fx:{burn:-10, boss:-22}, setFlags:["рислинг_на_документы"],
+           result:"Подпишут быстрее, но начальство заметит — и это может добить 👔." },
+    yes: { label:"Только кофе", fx:{coffee:+10}, result:"Отдел доволен." } },
+
+  { id:"Z4", quest:"winter", step:4, char:"lena", loc:"Г.3.09",
+    text:"Отчёт по снежным ангелам утвердить до завтра до 09:00. Пишем сами или просим ChatGPT, как Сергей Владимирович?",
+    no:  { label:"ChatGPT", fx:{burn:-5, boss:-20}, setFlags:["chatgpt_отчёт"],
+           result:"Быстро, но «$440 000 за отчёт из ChatGPT» — галлюцинации в цифрах." },
+    yes: { label:"Сами / Лена", fx:{burn:+12, boss:+10}, result:"Отчёт чистый." } },
+
+  { id:"Z5", quest:"winter", step:5, char:"socio", loc:"«Москва»",
+    text:"Социоцентр: пригласите для сдачи сотрудника. Отправляете Сергея Владимировича?",
+    no:  { label:"Антон / новичок", fx:{boss:-12, burn:+10}, setFlags:["провал_winter"],
+           result:"Зимний университет сдали со скрипом — Олег недоволен." },
+    yes: { label:"Сергей В.", fx:{boss:+8, coffee:+6},
+           result:"Зимний университет закрыт! Миша уже спрашивает про безалкогольные напитки." } },
+
+  /* ===== ФЛАВОР-КАРТОЧКИ (10 шт.) ===== */
+  { id:"F1", quest:null, char:"lyudmila", loc:"Г.3.05",
+    text:"Доброе утро ☀️ У нас сегодня 2 вкусных тортика. Собираемся на чае-кофепитие?",
+    no:  { label:"Работаем", fx:{burn:+5}, result:"Дисциплина." },
+    yes: { label:"Идём", fx:{coffee:+10, burn:-10, budget:-5}, result:"Пар над чашками." } },
+
+  { id:"F2", quest:null, char:"natalya", loc:"1 корпус",
+    text:"Сбежать в 1 корпус? Там по пятницам плов дают 😉",
+    no:  { label:"Остаёмся", fx:{boss:+5}, result:"Сидим на месте." },
+    yes: { label:"На плов", fx:{burn:-15, boss:-5}, result:"Казан дымится." } },
+
+  { id:"F3", quest:null, char:"andrey", loc:"Г.3.10",
+    text:"Слушатель задаёт вопросы про аддитивку. Отвечаем серьёзно?",
+    no:  { label:"Бэ… мэ…", fx:{burn:-5, boss:-5}, result:"«Это просто странный препод.»" },
+    yes: { label:"Отвечать", fx:{boss:+5, burn:+5}, result:"По существу." } },
+
+  { id:"F4", quest:null, char:"lena", loc:"Г.3.09",
+    text:"Написала стих про коллег. Публикуем в общий чат?",
+    no:  { label:"Не надо", fx:{coffee:-5}, result:"Стих в стол." },
+    yes: { label:"Публикуем", fx:{coffee:+15, boss:-10}, setFlags:["обидел_стихом"],
+           result:"Весело, но кто-то обидится и припомнит." } },
+
+  { id:"F5", quest:null, char:"zhenya", loc:"Г.3.05",
+    text:"Запускаем Тайного Санту? Барабан готов.",
+    no:  { label:"Не сейчас", fx:{burn:+5}, result:"Барабан подождёт." },
+    yes: { label:"Крутим!", fx:{coffee:+10, budget:-10, burn:-5}, result:"Мишура и кофе." } },
+
+  { id:"F6", quest:null, char:"anton", loc:"совещание",
+    text:"Я тут на совещании скидываю мемы в ретроспективу — рай для психоанализа. Смеёшься?",
+    no:  { label:"Серьёзный вид", fx:{boss:+5, burn:+5}, result:"Держим лицо." },
+    yes: { label:"Ржёшь", fx:{coffee:+10, boss:-10}, result:"Докладчик заметил." } },
+
+  { id:"F7", quest:null, char:"anton", loc:"Г.3.09",
+    text:"Бутылка рислинга на документах ускоряет их обработку. Ставим?",
+    no:  { label:"Нет", fx:{burn:+10}, result:"Подписи идут медленно." },
+    yes: { label:"Ставим", fx:{burn:-10, boss:-10, budget:-5}, result:"Антон подмигивает." } },
+
+  { id:"F8", quest:null, char:"alina", loc:"Г.3.10",
+    text:"100 технических единиц готовы на «Астре». Накатываем обновление прямо сейчас?",
+    no:  { label:"Позже", fx:{burn:+5}, result:"Ждём окна." },
+    yes: { label:"Накат!", fx:{boss:+10, burn:-5, coffee:-5}, result:"🫡 Ура, товарищи!" } },
+
+  { id:"F9", quest:null, char:"salk", loc:"Г.3.09",
+    text:"Сегодня вечером «Зенит» играет. Перенесём совещание на после матча?",
+    no:  { label:"Не переносим", fx:{boss:+5, burn:+5}, result:"Работа важнее." },
+    yes: { label:"После матча", fx:{coffee:+10, burn:-10, boss:-5}, setFlags:["зенит_проиграл"],
+           result:"Шеф в шарфе «Зенита» доволен." } },
+
+  { id:"F10", quest:null, char:"efimov", loc:"Г.3.05",
+    text:"Лень — двигатель прогресса. Отложим задачу до завтра?",
+    no:  { label:"Делаем сейчас", fx:{burn:+10, boss:+5}, result:"Без прокрастинации." },
+    yes: { label:"Откладываем", fx:{burn:-10, boss:-5}, result:"Нельзя побеждать лень!" } },
+
+  /* эпизод про звание «Главного душнилы» */
+  { id:"F11", quest:null, char:"vlad", loc:"переговорка",
+    text:"На созвоне опять занудство: можно полчаса уточнять формулировку пункта 4.2. Включаешь режим главного душнилы?",
+    no:  { label:"Отпустить", fx:{burn:-5, boss:-5}, result:"Пусть живут." },
+    yes: { label:"Душнить!", fx:{boss:+10, burn:+10}, setFlags:["душнила"],
+           result:"Все вздохнули, но пункт 4.2 теперь идеален. Звание получено." } },
+
+  /* Влад: бережливое производство и стартапы */
+  { id:"F12", quest:null, char:"vlad", loc:"Г.3.05",
+    text:"Влад двигает бережливое производство: 5S на кофемашине, карта потока до принтера, бережливка мозга. Внедряем по отделу?",
+    no:  { label:"Не сейчас", fx:{burn:+5}, result:"Кофемашина выдохнула." },
+    yes: { label:"Оптимизируем!", fx:{boss:+8, burn:+10, coffee:-5}, result:"Эффективность ↑, нервы ↓. Где мой стикер?" } },
+
+  { id:"F13", quest:null, char:"vlad", loc:"переговорка",
+    text:"Влад придумал очередной стартап: «кофе-as-a-service для АУП». Вписываемся в стартап Влада?",
+    no:  { label:"Пасс", fx:{boss:+5}, result:"Может, и к лучшему." },
+    yes: { label:"Вписаться!", fx:{coffee:+10, burn:+12, budget:-8}, result:"Питч готов, MVP к пятнице, сон отменяется." } },
+
+  /* флавор, активируемый флагами прошлых решений (память решений) */
+  { id:"FH", quest:null, char:"buh", loc:"Г.3.09", requiresFlag:"chatgpt_отчёт",
+    text:"Всплыла галлюцинация из того отчёта ChatGPT — $440 000 из ниоткуда. Срочно правим вручную?",
+    no:  { label:"Оставить", fx:{budget:-15}, result:"Цифра ушла в Москву как есть. Ой." },
+    yes: { label:"Править ночью", fx:{burn:+10, budget:-5}, result:"Поймали, но ночь насмарку." } },
+
+  { id:"FB", quest:null, char:"salk", loc:"Г.3.09", requiresFlag:"всё_на_себя",
+    text:"Ты же взял всё на отдел — теперь и это на тебе. Тянешь один?",
+    no:  { label:"Делегирую", fx:{boss:-6, burn:+8}, result:"Поздно перекладывать." },
+    yes: { label:"Тяну сам", fx:{burn:+16}, result:"Перегруз ×2. Героизм ценой нервов." } },
+
+  { id:"FC", quest:null, char:"lena", loc:"Г.3.05", requiresFlag:"обидел_стихом",
+    text:"Помнишь тот острый стих? Коллега до сих пор припоминает. Сгладишь?",
+    no:  { label:"Игнор", fx:{boss:-5}, result:"Затаил обиду." },
+    yes: { label:"Помириться", fx:{coffee:+5, boss:+5}, result:"Кофе мира." } },
+
+  /* ===== КВЕСТ «ПРИОРИТЕТ-2030» P1–P5 (опасная 🔥) ===== */
+  { id:"P1", quest:"priority", step:1, char:"borovkov", loc:"Г.3.09",
+    text:"Прекрасная возможность: входим в «Приоритет-2030». Цифровые двойники, технологическое лидерство. Берём?",
+    no:  { label:"Отказать", fx:{boss:-22}, result:"Так нельзя — это директор." },
+    yes: { label:"Берём", fx:{budget:+18, burn:+18, boss:+10}, result:"Возможность, от которой не отказаться." } },
+  { id:"P2", quest:"priority", step:2, char:"salk", loc:"Г.3.09",
+    text:"Делим задачи. Берём всё на наш отдел, чтобы выглядеть героями?",
+    no:  { label:"Делим", fx:{burn:-10, boss:-5}, result:"Разумно распределили." },
+    yes: { label:"Всё на себя", fx:{burn:+22, boss:+8}, setFlags:["всё_на_себя"], result:"Героизм ценой нервов." } },
+  { id:"P3", quest:"priority", step:3, char:"lena", loc:"Г.3.09",
+    text:"Пошла квартальная отчётность по гранту. Заполняем 40 форм сами за ночь?",
+    no:  { label:"По неделе", fx:{burn:+6, boss:+5}, result:"Распределили нагрузку." },
+    yes: { label:"За ночь", fx:{burn:+24}, result:"Можно сгореть прямо тут." } },
+  { id:"P4", quest:"priority", step:4, char:"oleg", loc:"Г.3.09",
+    text:"Промежуточная проверка. Показатели чуть не дотягиваем. Рисуем красивые цифры?",
+    no:  { label:"Честно", fx:{boss:-6, burn:+6}, result:"Честные цифры + план догона." },
+    yes: { label:"Приукрасить", fx:{boss:+10, budget:-20, burn:+18}, result:"Всплывёт на защите." } },
+  { id:"P5", quest:"priority", step:5, char:"borovkov", loc:"«Москва»",
+    text:"Защита результатов гранта. Выходим с тем, что реально сделали?",
+    no:  { label:"Обещаем больше", fx:{boss:+10, burn:+20, budget:-15}, setFlags:["провал_priority"], result:"Ловушка на следующий год." },
+    yes: { label:"Как есть", fx:{coffee:+10, boss:+6}, result:"Грант продлён." } },
+
+  /* ===== КВЕСТ «ПРОЕКТ ИРАО» I1–I5 (опасные 🔥/👔) ===== */
+  { id:"I1", quest:"irao", step:1, char:"tetki", loc:"переговорка",
+    text:"Мы всё знаем, мы наслушались экспертов. Сделайте, как мы сказали — это же очевидно. Соглашаетесь?",
+    no:  { label:"Возразить", fx:{burn:+12, boss:-6}, result:"Мягко возражаешь фактами." },
+    yes: { label:"Согласиться", fx:{burn:+18}, result:"Сделаете — потом переделаете." } },
+  { id:"I2", quest:"irao", step:2, char:"tetki", loc:"переговорка",
+    text:"Нам сказали, что «так у всех». Переделать всё под несуществующий стандарт?",
+    no:  { label:"Покажите стандарт", fx:{burn:+10, boss:-5}, result:"Стандарта, конечно, нет." },
+    yes: { label:"Переделать", fx:{burn:+22, budget:-10}, result:"Вслепую под пустоту." } },
+  { id:"I3", quest:"irao", step:3, char:"salk", loc:"Г.3.09",
+    text:"Шеф предлагает зафиксировать всё письменно — ТЗ и протоколы. Тратим на это время?",
+    no:  { label:"На словах", fx:{burn:+20, boss:-8}, result:"Завтра скажут, что договаривались иначе." },
+    yes: { label:"Фиксируем", fx:{burn:-8, boss:+6}, result:"ТЗ как щит." } },
+  { id:"I4", quest:"irao", step:4, char:"tetki", loc:"переговорка",
+    text:"Дедлайн завтра, требования снова поменялись. Выходишь из себя на встрече?",
+    no:  { label:"Держу лицо", fx:{burn:+14, boss:+5}, result:"Ссылаешься на протокол." },
+    yes: { label:"Взрываюсь", fx:{boss:-22, burn:-10}, result:"Разрядка ценой репутации." } },
+  { id:"I5", quest:"irao", step:5, char:"tetki", loc:"сдача",
+    text:"Сдаём проект. Признаём их «экспертизу» в финальном протоколе?",
+    no:  { label:"По фактам", fx:{boss:+10, burn:-12}, result:"Сдали по документам — успех." },
+    yes: { label:"Как хотят", fx:{boss:+8, budget:-15, burn:+18}, setFlags:["провал_irao"], result:"Проект вернут." } },
+
+  /* ===== КВЕСТ «ЗАКУПКА У ПЕТРА» K1–K5 (опасные 💰/🔥) ===== */
+  { id:"K1", quest:"peter", step:1, char:"buh", loc:"Г.3.09",
+    text:"Нужно закупить симуляторы у исполнителя — некоего Петра. «У Петра… Первого?» Запускаем закупку?",
+    no:  { label:"Другие поставщики", fx:{budget:+10, burn:+18}, result:"Бесконечные согласования." },
+    yes: { label:"Работаем с Петром", fx:{budget:-12, burn:-4}, result:"Поехали, государь." } },
+  { id:"K2", quest:"peter", step:2, char:"peter", loc:"переписка",
+    text:"Пётр: «Государь, сборка будет к понедельнику». Верим на слово без договора?",
+    no:  { label:"Договор и сроки", fx:{burn:+8, boss:+5}, result:"Подписали по-человечески." },
+    yes: { label:"Верим государю", fx:{burn:+20, budget:-10}, result:"«Понедельник» Петра растяжим." } },
+  { id:"K3", quest:"peter", step:3, char:"alina", loc:"Г.3.10",
+    text:"Первая версия симулятора падает на запуске. Принимаем как есть, чтобы закрыть этап?",
+    no:  { label:"На доработку", fx:{burn:+12, budget:-5}, result:"Возвращаем Петру." },
+    yes: { label:"Принять брак", fx:{budget:+10, burn:+22, boss:-12}, result:"Всплывёт на демо." } },
+  { id:"K4", quest:"peter", step:4, char:"buh", loc:"Г.3.09",
+    text:"Счёт от Петра вырос вдвое — «исторический курс камзолов». Оплачиваем без вопросов?",
+    no:  { label:"Смету и обоснование", fx:{burn:+14, budget:-5}, result:"Запросили обоснование." },
+    yes: { label:"Платим вдвое", fx:{budget:-24}, result:"Казна Г.3.09 худеет на глазах." } },
+  { id:"K5", quest:"peter", step:5, char:"peter", loc:"демо",
+    text:"Финальная приёмка симулятора перед комиссией. Запускаем версию Петра вживую?",
+    no:  { label:"Тест заранее", fx:{boss:+10, coffee:+10}, result:"Симулятор летает — успех." },
+    yes: { label:"Вслепую при всех", fx:{boss:-20, burn:+18}, setFlags:["провал_peter"], result:"Запуск вслепую — рискованно." } },
+
+  /* ===== КВЕСТ «ОТЧЁТ ПЕРЕД ОЛЕГОМ» O1–O5 — ФИНАЛ ГОДА (опасная 👔) ===== */
+  { id:"O1", quest:"oleg", step:1, char:"oleg", loc:"Г.3.09",
+    text:"Где отчёт? Дедлайн был вчера. Сдаёшь сейчас как есть?",
+    no:  { label:"Прошу день", fx:{burn:+12, boss:-6}, result:"Доделываешь нормально." },
+    yes: { label:"Сдаю сырой", fx:{boss:-20}, result:"Олег уже тянется порвать лист." } },
+  { id:"O2", quest:"oleg", step:2, char:"lena", loc:"Г.3.09",
+    text:"В отчёте дыра в разделе «снежные ангелы». Просим помощи у Лены?",
+    no:  { label:"Латаю сам", fx:{boss:-12, burn:+12}, result:"В спешке и криво." },
+    yes: { label:"Зову Лену", fx:{burn:+6, boss:+6}, result:"Спасательный круг." } },
+  { id:"O3", quest:"oleg", step:3, char:"anton", loc:"Г.3.09",
+    text:"Поставить бутылку рислинга на отчёт, чтобы Олег подписал быстрее?",
+    no:  { label:"Обычный путь", fx:{burn:+8}, result:"Без фокусов." },
+    yes: { label:"Рислинг Олегу", fx:{boss:-24}, result:"С Олегом это не работает." } },
+  { id:"O4", quest:"oleg", step:4, char:"oleg", loc:"Г.3.09",
+    text:"Олег нашёл три ошибки. Споришь, что это он неправ?",
+    no:  { label:"Признаю, правлю", fx:{boss:+8, burn:+8}, result:"Исправил молча." },
+    yes: { label:"Спорю с боссом", fx:{boss:-22}, result:"«Олег тебя порвёт» — уже не стих." } },
+  { id:"O5", quest:"oleg", step:5, char:"oleg", loc:"Г.3.09",
+    text:"Финальная версия года. Сдаёшь Олегу — и в Социоцентр?",
+    no:  { label:"Тяну ещё", fx:{boss:-18, burn:+15}, result:"Время на исходе." },
+    yes: { label:"Сдаю чистовик", fx:{boss:+12, burn:-10}, result:"Олег почти улыбнулся." } },
+];
+
+/* ---------- Промты картинок (заглушка вместо фото; дословно из КАРТОЧКИ_ДПО.md) ---------- */
+const PROMPTS = {
+  Z1:"Лена держит ноутбук, на экране — снежинка и текст «Зимний университет», вокруг падают бумажные снежинки. Тревожно-весёлое выражение.",
+  Z2:"Шеф с шарфом «Зенита» указывает на двух силуэтов-кандидатов; над головой Антона облако из мемов и уведомлений.",
+  Z3:"Наталья с большим термосом в одной руке и бутылкой рислинга, стоящей на стопке документов, в другой. Хитрая улыбка, фон — коридор 1 корпуса.",
+  Z4:"Лена ночью за столом под лампой, перед ней документ «Отчёт по снежным ангелам», на стене часы 08:59, рядом светится окно чат-бота.",
+  Z5:"Строгая комиссия Социоцентра за длинным столом на фоне герба; перед ними маленькая фигурка сотрудника с папкой. Холодный официальный свет.",
+  F1:"Людмила в фартуке держит два торта, за спиной чайник и кружки, табличка «Г.3.05», пар над чашками.",
+  F2:"Наталья манит рукой в сторону коридора, вдалеке дымится казан с пловом, на стене указатель «1 корпус».",
+  F3:"Андрей с чашкой кофе разводит руками перед растерянным слушателем; над головой пузырь с «бэ… мэ…».",
+  F4:"Лена с театральным жестом читает свиток-стих, вокруг летят сердечки и одна тучка с молнией.",
+  F5:"Женя крутит праздничный барабан-лототрон с именами, мишура, бейдж на шее, кофе в руке.",
+  F6:"Антон под столом переговорки украдкой показывает телефон с мемом; на заднем плане строгий докладчик у экрана.",
+  F7:"Крупная бутылка рислинга стоит поверх стопки бумаг с печатями; Антон подмигивает, палец у губ.",
+  F8:"Алина за ноутбуком с логотипом ОС «Астра», на экране прогресс-бар «100 единиц», уверенный салют 🫡.",
+  F9:"Шеф в сине-бело-голубом шарфе «Зенита», на стене вместо графика — расписание матчей, в руке смартфон со счётом.",
+  F10:"Ефимов с ухмылкой и телефоном (мем-канал), нога на стол, дорожный знак «запрещено побеждать лень».",
+  F11:"Сотрудник с указкой и сводом регламентов тычет в пункт 4.2; коллеги в зуме закатывают глаза, над головой нимб из мелкого шрифта.",
+  F12:"Влад с маркером расчерчивает кофемашину по системе 5S, повсюду жёлтые стикеры «бережливо», в глазах — оптимизация всего на свете.",
+  F13:"Влад с горящими глазами питчит слайд «кофе-as-a-service», диаграмма роста уходит в потолок, коллеги устало прихлёбывают кофе.",
+  FH:"Бухгалтер у монитора с цифрой $440 000, обведённой красным; рядом облачко чат-бота, из которого сыпется бессмыслица.",
+  FB:"Сергей Владимирович подпирает гору задач с табличкой «МЫ», под ней — погнувшийся сотрудник.",
+  FC:"Лена и коллега неловко чокаются кружками; на фоне тот самый свиток-стих с тучкой.",
+  P1:"Боровков в костюме на фоне голограммы цифрового двойника двигателя, протягивает золотую папку «Приоритет-2030», величественный свет сверху.",
+  P2:"Шеф с шарфом «Зенита» делит стопку задач на кучки, одна гора подписана «МЫ», остальные пустые.",
+  P3:"Лена обложена башнями из форм и таблиц, кофе на столе, часы показывают 03:00, глаза-спирали.",
+  P4:"Олег с лупой изучает график, который кто-то подрисовал маркером вверх; на фоне — тревожный красный свет.",
+  P5:"Комиссия Социоцентра и Боровков рядом смотрят на экран с результатами; маленькая фигура докладчика, лучи софитов.",
+  I1:"Группа уверенных дам-заказчиц за столом с пустыми папками и поднятыми пальцами «мы знаем», нимб из модных терминов; напротив — устало улыбающийся сотрудник ДПО.",
+  I2:"Дамы машут распечаткой «ТАК У ВСЕХ» без источника; сотрудник листает пустые приложения.",
+  I3:"Шеф протягивает подписанное ТЗ как щит против вихря устных «договорённостей».",
+  I4:"Сотрудник с натянутой улыбкой и чашкой кофе, над головой свистит чайник-«закипел»; дамы невозмутимо листают новые правки.",
+  I5:"Стол сдачи: с одной стороны папки с печатями, с другой — дамы с поднятыми пальцами; между ними весы.",
+  K1:"Пётр-разработчик в камзоле и треуголке набекрень, с ноутбуком и симулятором на экране; рядом тележка «закупка», гора счетов.",
+  K2:"Чат с Петром, аватарка — портрет Петра I; сообщение «Государь, будет к понедельнику», календарь с туманом.",
+  K3:"Алина у ноутбука с синим экраном «симулятор упал», на фоне Пётр разводит руками «у меня работало».",
+  K4:"Счёт с гербом и двойной суммой, печать «Пётр I Симуляторович»; калькулятор дымится.",
+  K5:"Большой экран-симулятор перед комиссией, Пётр в треуголке жмёт «Запуск»; зал замер, курсор-песочные часы.",
+  O1:"Олег нависает над столом, держит лист отчёта двумя руками, готовясь порвать; тёмное небо за окном.",
+  O2:"Лена за клавиатурой спасает документ, на экране раздел «Снежные ангелы», вокруг — спасательный круг как мем.",
+  O3:"Рука ставит бутылку рислинга на папку перед суровым Олегом; Олег поднимает бровь, температура в кабинете падает.",
+  O4:"Олег тычет красной ручкой в три места отчёта; напротив — сотрудник с поднятым пальцем «но вообще-то…».",
+  O5:"Олег ставит подпись и кивает; над отчётом — лёгкое сияние, на стене логотип ПИШ.",
+};
+
+/* ---------- Картинки карточек (по умолчанию пусто → показывается текст промта) ----------
+   Когда появится арт: впиши в ART значение по ключу-id карточки. Два варианта:
+   • для ПК (файл рядом):     ART.Z1 = "images/Z1.png";
+   • для ТЕЛЕФОНА (1 файл):    ART.Z1 = "data:image/png;base64,iVBORw0KGg...";  ← портативно, рекомендую
+   Имя файла = id карточки (Z1.png, F1.png, P1.png … O5.png). Таблица «файл → промт» — в АРТ_ПРОМТЫ.md
+*/
+const ART = {
+  Z1:"", Z2:"", Z3:"", Z4:"", Z5:"",
+  F1:"", F2:"", F3:"", F4:"", F5:"", F6:"", F7:"", F8:"", F9:"", F10:"", F11:"", F12:"", F13:"", FH:"", FB:"", FC:"",
+  P1:"", P2:"", P3:"", P4:"", P5:"",
+  I1:"", I2:"", I3:"", I4:"", I5:"",
+  K1:"", K2:"", K3:"", K4:"", K5:"",
+  O1:"", O2:"", O3:"", O4:"", O5:"",
+};
+
+/* ---------- Экраны смерти (§8) и победы ---------- */
+const ENDINGS = {
+  die_coffee_0:   {emoji:"☕", title:"Кофе кончился", text:"Отдел впал в анабиоз. Г.3.05 опечатан."},
+  die_coffee_100: {emoji:"⚡", title:"Передоз кофеином", text:"Все выпили слишком много. Отдел вибрирует на частоте 50 Гц. Работать невозможно."},
+  die_budget_0:   {emoji:"💸", title:"Банкротство", text:"Печеньки отменяются. Тайный Санта дарит долги."},
+  die_budget_100: {emoji:"🔍", title:"Подозрительно богаты", text:"Подозрительно много денег. Пришёл Социоцентр с внеплановой проверкой."},
+  die_boss_0:     {emoji:"🚪", title:"Ссылка в Г.3.02", text:"Вас сослали в Г.3.02. Теперь вы сидите рядом с профессорами и молчите."},
+  die_boss_100:   {emoji:"👔", title:"Вы теперь Олег", text:"Вас повысили. Теперь вы — Олег. Отчёты будут вечно."},
+  die_burn_100:   {emoji:"🔥", title:"Сгорел в дедлайнах", text:"АУП сгорел в дедлайнах. Весь отдел ушёл в отпуск по уходу за нервами."},
+  die_burn_0:     {emoji:"😴", title:"Расслабон до нуля", text:"Никто ничего не делает, дедлайны прошли мимо, про зарплату все дружно забыли. Отдел сидит голожопый, но довольный."},
+  die_dushnila:   {emoji:"🤓", title:"Главный душнила", text:"Вы задушнили всех до молекул и сами стали тем, кого боялись. Регламент присвоил ВАМ звание главного душнилы отдела. Теперь к вам приходят уточнять формулировку пункта 4.2 — навечно."},
+  win_triumph:    {emoji:"🏆", title:"ГОД ПРОЖИТ", text:"Вы дожили до отчёта. Социоцентр принял итог, отдел жив, кофе не кончился, Олег почти улыбнулся. Зимний университет, Приоритет-2030, ИРАО и Пётр — позади. Учебный год Центра ДПО выжит начисто."},
+  win_skripom:    {emoji:"📋", title:"Дожили со скрипом", text:"Год дотянули, но на честном слове и кофеине. Комиссия хмурилась, Олег точил карандаш — однако отдел жив. До следующего сентября."},
+  win_olegtore:   {emoji:"📄", title:"Олег порвал отчёт", text:"На финишной прямой не дотянули по лояльности: «Если не сдашь — Олег тебя порвёт» перестало быть стихом. Год прожит, но финал — со скандалом."},
+};
+/* звания-ачивки (не экраны смерти, а коллекционные бейджи в галерее) */
+const ACHIEVEMENTS = {
+  ach_prozrenie: {emoji:"👁️", title:"Прозрение", text:"Вы пережили целую победу — и теперь видите, кто есть кто, с первого дня."},
+  ach_dushnila:  {emoji:"🤓", title:"Сертификат душнилы", text:"Выдаётся за выбор «Душнить!» в эпизоде про созвон — когда полчаса доводишь до идеала формулировку пункта 4.2. Честное занудство во имя порядка."},
+  ach_quit:      {emoji:"🏃", title:"Вышел с работы", text:"Не выдержал рабочей суеты и нажал «Сдаюсь» посреди года. Иногда уйти — тоже выбор. Г.3.05 машет вслед термосом."},
+};
+const SUBS = {win:"Финал учебного года", die:"Game over"};
+
+/* ---------- Сезоны учебного года (§8А.1) ---------- */
+const QUEST_ORDER = ["winter","priority","irao","peter","oleg"];
+const SEASON_NAME = {
+  launch:"Сентябрь–октябрь · Запуск",
+  winter:"Ноябрь–декабрь · Зимний университет",
+  priority:"Январь–февраль · Приоритет-2030",
+  irao:"Февраль–март · Проект ИРАО",
+  peter:"Апрель–май · Закупка у Петра",
+  oleg:"Июнь · Отчёт перед Олегом",
+};
+
+/* ---------- Состояние ---------- */
+const START = 50, MIN = 0, MAX = 100;
+let stats, day, flags, recent, ended, busy, questIdx, questStep, flavorLeft, launchLeft, appliedIntros;
+
+/* «Прозрение» открывается навсегда после первой победы (хранится в галерее) */
+function prozrenie(){ return getGallery().includes("ach_prozrenie"); }
+
+function newGame(startIdx){
+  stats = {coffee:START, budget:START, boss:START, burn:START};
+  day = 1; flags = {}; recent = []; ended = false; busy = false;
+  questIdx = (startIdx>=0) ? startIdx : 0;
+  questStep = 0; flavorLeft = 0;
+  launchLeft = (startIdx>=0) ? 0 : 3;   // выбран эпизод → пропускаем онбординг «Запуск»
+  appliedIntros = {};
+  current = null;
+  document.getElementById("app").classList.remove("ending");
+  showOverlay("ov-start", false); // спрячем
+  drawNext();
+  render();
+}
+
+/* изи-мод (летний режим): подсветка эффекта зелёным/красным, без чисел */
+function easyOn(){ try{ return localStorage.getItem("dpo_easy")==="1"; }catch(e){ return false; } }
+function setEasy(on){ try{ localStorage.setItem("dpo_easy", on?"1":"0"); }catch(e){} syncEasyToggle(); }
+function syncEasyToggle(){ const t=document.getElementById("easy-toggle"); if(t) t.classList.toggle("on", easyOn()); }
+
+/* тост-уведомление (получено звание и т.п.) */
+function toast(msg){
+  const el=document.getElementById("toast");
+  el.textContent=msg; el.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t=setTimeout(()=>el.classList.remove("show"), 2400);
+}
+
+/* выход в главное меню */
+function backToMenu(){
+  ended = true; busy = false;
+  document.getElementById("app").classList.remove("ending");
+  showOverlay("ov-end", false);
+  showOverlay("ov-start", true);
+}
+
+/* ---------- Выбор следующей карточки ---------- */
+let current = null;
+function rand(){ return Math.random(); }                 // Math.random доступен в браузере
+function getQuestCard(q, step){ return CARDS.find(c=>c.quest===q && c.step===step); }
+
+function setSeasonHeader(){
+  const key = (questIdx===0 && questStep===0) ? "launch" : QUEST_ORDER[questIdx];
+  document.getElementById("season").textContent = SEASON_NAME[key] || SEASON_NAME.launch;
+}
+
+function drawNext(){
+  // Сезон «Запуск»: онбординг из нескольких флавор-карточек перед первым квестом
+  if(launchLeft > 0 && questStep === 0 && flavorLeft === 0){
+    launchLeft--;
+    current = pickFlavor();
+    setSeasonHeader(); showCard(); return;
+  }
+  const q = QUEST_ORDER[questIdx];
+  if(flavorLeft <= 0 && questStep < 5){
+    questStep++;
+    current = getQuestCard(q, questStep);
+    applyFlagIntro(current);                              // активация флагов прошлых решений
+    if(questStep < 5) flavorLeft = 2 + Math.floor(rand()*2); // 2–3 флавора между шагами квеста
+  } else {
+    flavorLeft--;
+    current = pickFlavor();
+  }
+  setSeasonHeader(); showCard();
+}
+
+function pickFlavor(){
+  // только флавор; карточки с requiresFlag — лишь если флаг выставлен (память решений)
+  const pool = CARDS.filter(c => c.quest===null && (!c.requiresFlag || flags[c.requiresFlag]));
+  const block = recent.slice(-Math.min(6, pool.length-1));
+  let avail = pool.filter(c=>!block.includes(c.id));
+  if(avail.length===0) avail = pool;
+  const card = avail[Math.floor(rand()*avail.length)];
+  recent.push(card.id);
+  return card;
+}
+
+/* активация флагов прошлых решений на входе в карточку (§8А.2) */
+function applyFlagIntro(card){
+  if(!card || appliedIntros[card.id]) return;
+  if(card.id === "O1" && flags["рислинг_на_документы"]){
+    appliedIntros[card.id] = true;
+    stats.boss -= 10;                                     // Олег помнит «винишко на документах»
+    card._introNote = "«Опять винишко на документах приносил?» Олег стартует на −10 👔.";
+  }
+}
+
+/* имена людей, которые блюрятся в тексте промта (длинные — первыми) */
+const NAME_TOKENS = ["Сергей Владимирович","Социоцентр","Рождественский","Боровков","Наталья","Людмила","Андрей","Антон","Алина","Ефимов","Женя","Лена","Миша","Олег","Пётр","Влад","Шеф","Сергей"];
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+/* в слепой фазе имена людей скрыты «???» (как на нейм-плейте) — не размыты, а явно зачёркнуты */
+function redactNames(text){
+  let s = esc(text);
+  NAME_TOKENS.forEach(n=>{ s = s.split(n).join('<span class="redact">???</span>'); });
+  return s;
+}
+
+/* ---------- Рендер карточки ---------- */
+let curName = "";
+function showCard(){
+  const c = current;
+  curName = CHARS[c.char].name;
+  const blind = !prozrenie();                 // слепая фаза — пока не выиграл ни разу
+  const art = ART[c.id];                       // если есть картинка — показываем её вместо заглушки
+  const cardEl0 = document.getElementById("card");
+  cardEl0.classList.toggle("has-art", !!art);
+  document.getElementById("portrait-svg").innerHTML =
+    art ? `<img class="art" src="${art}" alt="">` : portraitSVG(c.char);
+  document.getElementById("c-name").textContent = blind ? "???" : curName;
+  document.getElementById("c-loc").textContent = c.loc;
+  document.getElementById("c-prompt").innerHTML = blind ? redactNames(PROMPTS[c.id]||"") : esc(PROMPTS[c.id]||"");
+  const note = c._introNote ? `<span class="intronote">🚩 ${esc(c._introNote)}</span>` : "";
+  document.getElementById("c-text").innerHTML = note + esc(c.text);
+  document.getElementById("lbl-no").textContent  = c.no.label  || "НЕТ";
+  document.getElementById("lbl-yes").textContent = c.yes.label || "ДА";
+  // сброс позиции карточки
+  const card = document.getElementById("card");
+  card.classList.remove("anim","anim-tilt","snap");
+  card.style.transform = "";
+  card.style.opacity = "1";
+  card.classList.toggle("blurred", blind);    // мыло держится всю слепую фазу
+  setTag(0);
+  render();
+}
+/* «прозреваем» в момент выбора: имя и промт-имена проявляются, портрет расфокусируется */
+function revealCard(){
+  document.getElementById("card").classList.remove("blurred");
+  document.getElementById("c-name").textContent = curName;
+  if(current) document.getElementById("c-prompt").innerHTML = esc(PROMPTS[current.id]||"");
+}
+
+/* ---------- Превью затрагиваемых шкал ---------- */
+function previewScales(dir){
+  // dir: -1 = НЕТ (влево), +1 = ДА (вправо), 0 = сброс
+  document.querySelectorAll(".scale").forEach(s=>s.classList.remove("affect","good","bad"));
+  if(dir===0 || !current) return;
+  const opt = dir<0 ? current.no : current.yes;
+  const fx = opt.fx || {};
+  const easy = easyOn();
+  Object.keys(fx).forEach(k=>{
+    const el = document.querySelector(`.scale[data-k="${k}"]`);
+    if(!el) return;
+    el.classList.add("affect");
+    if(easy){
+      // зелёный = хорошо, красный = плохо (выгорание наоборот: меньше — лучше)
+      const good = (k==="burn") ? (fx[k] < 0) : (fx[k] > 0);
+      el.classList.add(good ? "good" : "bad");
+    }
+  });
+}
+
+/* всплывающие ярлыки НЕТ/ДА */
+function setTag(progress){ // progress -1..1
+  const no = document.querySelector(".swipe-tag.no");
+  const yes = document.querySelector(".swipe-tag.yes");
+  no.style.opacity  = progress<0 ? Math.min(1, -progress*1.6) : 0;
+  yes.style.opacity = progress>0 ? Math.min(1,  progress*1.6) : 0;
+}
+
+/* ---------- Применение выбора ----------
+   Поток: применяем эффекты → «прозреваем» (снимаем мыло, видно кто это) +
+   показываем дельты ресурсов и текст результата → пауза на чтение →
+   карточка медленно улетает (×2 к прежней скорости) → следующая.
+*/
+const REVEAL_MS = 1150;  // пауза «узнавания» и чтения эффекта
+const FLYOUT_MS = 700;   // полёт карточки (в 2 раза медленнее прежних 350мс)
+
+function commit(dir){
+  if(ended || !current || busy) return;
+  busy = true;
+  const card = document.getElementById("card");
+  const opt = dir<0 ? current.no : current.yes;
+  previewScales(0); setTag(0);
+
+  // лёгкий наклон в сторону выбора — карточка пока на месте
+  card.classList.add("anim-tilt");
+  card.style.transform = `translateX(${dir*46}px) rotate(${dir*5}deg)`;
+  revealCard(); // «на секунду мыло пропадает — понимаем, кто это был»
+
+  // применяем эффекты
+  (opt.setFlags||[]).forEach(f=>flags[f]=true);
+  // звание «Главного душнилы» выдаётся сразу при выборе «Душнить!»
+  if(flags["душнила"] && !getGallery().includes("ach_dushnila")){
+    unlockGallery("ach_dushnila");
+    toast("🤓 Звание получено: «Главный душнила»");
+  }
+  if(flags["зенит_проиграл"] && current.char==="salk") stats.coffee -= 3; // мрачный шеф после проигрыша
+  const fx = opt.fx || {};
+  for(const k in fx) stats[k] += fx[k];
+  day++;
+  render();
+  flashEffect(fx, opt.result);
+  const death = checkDeath();
+  const lastStep = current.quest && current.step === 5;
+  const isGrandFinale = lastStep && current.quest === "oleg";
+
+  setTimeout(()=>{
+    // медленный вылет
+    card.classList.remove("anim-tilt");
+    card.classList.add("anim");
+    const off = dir<0 ? -window.innerWidth : window.innerWidth;
+    card.style.transform = `translateX(${off}px) rotate(${dir*20}deg)`;
+    card.style.opacity = "0";
+    setTimeout(()=>{
+      busy = false;
+      if(death){ gameOver(death); return; }
+      if(isGrandFinale){ resolveGrandFinale(); return; }   // дожил до отчёта — финал года
+      if(lastStep){ advanceQuest(); }                       // квест закрыт — следующий сезон
+      drawNext();
+    }, FLYOUT_MS);
+  }, REVEAL_MS);
+}
+
+/* квест пройден (шаг 5) — переходим к следующему сезону */
+function advanceQuest(){
+  questIdx++;
+  questStep = 0;
+  flavorLeft = 1 + Math.floor(rand()*2); // 1–2 флавора-передышки между квестами
+}
+
+/* финал учебного года: дожил до отчёта перед Олегом/Социоцентром */
+function resolveGrandFinale(){
+  let endId;
+  const clean = stats.boss>=50 && stats.burn<=70 && stats.coffee>20 && stats.budget>20;
+  if(stats.boss<35 || stats.burn>85) endId = "win_olegtore";
+  else if(clean) endId = "win_triumph";
+  else endId = "win_skripom";
+  gameOver(endId);
+}
+
+/* всплывающий эффект: дельты ресурсов (в цвете шкалы) + текст результата */
+function flashEffect(fx, text){
+  const ic={coffee:"☕",budget:"💰",boss:"👔",burn:"🔥"};
+  const col={coffee:"var(--coffee-c)",budget:"var(--budget-c)",boss:"var(--boss-c)",burn:"var(--burn-c)"};
+  let deltas="";
+  if(fx) deltas = Object.keys(fx).map(k=>{
+    const v=fx[k]; const s=(v>0?"+":"")+v;
+    return `<span style="color:${col[k]}">${ic[k]} ${s}</span>`;
+  }).join("");
+  const el=document.getElementById("flash-result");
+  el.innerHTML = (deltas?`<div class="deltas">${deltas}</div>`:"") + (text?`<div class="rtext">${text}</div>`:"");
+  el.classList.add("show");
+  clearTimeout(flashEffect._t);
+  flashEffect._t = setTimeout(()=>el.classList.remove("show"), REVEAL_MS + FLYOUT_MS);
+}
+
+function checkDeath(){
+  // приоритет по первой пробитой шкале
+  const order=["coffee","budget","boss","burn"];
+  for(const k of order){
+    if(stats[k] <= MIN){ stats[k]=MIN; return `die_${k}_0`; }
+    if(stats[k] >= MAX){
+      stats[k]=MAX;
+      // перегрев лояльности при выставленном флаге душнилы → особая концовка
+      if(k==="boss" && flags["душнила"]) return "die_dushnila";
+      return `die_${k}_100`;
+    }
+  }
+  return null;
+}
+
+/* ---------- Game over / победа ---------- */
+function gameOver(endId){
+  ended = true;
+  document.getElementById("app").classList.add("ending");
+  const e = ENDINGS[endId] || ACHIEVEMENTS[endId];
+  unlockGallery(endId);
+  if(endId.startsWith("win")){           // любая победа открывает «Прозрение» навсегда
+    unlockGallery("ach_prozrenie");
+  }
+  if(flags["душнила"]) unlockGallery("ach_dushnila");
+  document.getElementById("end-emoji").textContent = e.emoji;
+  document.getElementById("end-title").textContent = e.title;
+  document.getElementById("end-sub").textContent = endId.startsWith("win") ? SUBS.win : SUBS.die;
+  document.getElementById("end-text").textContent = e.text;
+  document.getElementById("end-days").textContent = day;
+  renderGallery();
+  showOverlay("ov-end", true);
+}
+
+/* ---------- Галерея концовок (localStorage — игра локальная) ---------- */
+function getGallery(){
+  try{ return JSON.parse(localStorage.getItem("dpo_gallery")||"[]"); }catch(e){ return []; }
+}
+function unlockGallery(id){
+  const g = getGallery();
+  if(!g.includes(id)){ g.push(id); try{ localStorage.setItem("dpo_gallery", JSON.stringify(g)); }catch(e){} }
+}
+function renderGallery(){
+  const g = getGallery();
+  const fill = (gridId, map)=>{
+    const grid = document.getElementById(gridId);
+    grid.innerHTML = "";
+    Object.keys(map).forEach(id=>{
+      const e = map[id];
+      const open = g.includes(id);
+      const cell = document.createElement("div");
+      cell.className = "gal-cell " + (open?"unlocked":"locked");
+      cell.innerHTML = open ? `${e.emoji}<span class="tt">${e.title}</span>` : "🔒";
+      grid.appendChild(cell);
+    });
+  };
+  fill("gal-grid", ENDINGS);
+  fill("gal-ach", ACHIEVEMENTS);
+}
+
+/* ---------- Рендер HUD ---------- */
+function render(){
+  for(const k in stats){
+    const v = Math.max(0, Math.min(100, stats[k]));
+    const sc = document.querySelector(`.scale[data-k="${k}"]`);
+    sc.querySelector(".fill").style.width = v + "%";
+    sc.querySelector(".val").textContent = Math.round(v);
+    const danger = v<=20 || v>=80;
+    sc.classList.toggle("danger", danger);
+  }
+  document.querySelector("#daycount b").textContent = day;
+  // подписи-пояснения под шкалами скрываются с 3-го шага (онбординг отыграл)
+  document.getElementById("scales").classList.toggle("compact", day >= 3);
+}
+
+/* ---------- Свайп / drag ---------- */
+let drag = {active:false, startX:0, dx:0};
+const cardEl = () => document.getElementById("card");
+
+function onDown(x){
+  if(ended || busy) return;            // во время анимации/узнавания ввод заблокирован
+  drag.active = true; drag.startX = x; drag.dx = 0;
+  cardEl().classList.add("dragging");
+}
+function onMove(x){
+  if(!drag.active) return;
+  drag.dx = x - drag.startX;
+  const rot = drag.dx/18;
+  cardEl().style.transform = `translateX(${drag.dx}px) rotate(${rot}deg)`;
+  const prog = Math.max(-1, Math.min(1, drag.dx/120));
+  setTag(prog);
+  previewScales(Math.abs(drag.dx)>14 ? Math.sign(drag.dx) : 0);
+}
+function onUp(){
+  if(!drag.active) return;
+  drag.active = false;
+  cardEl().classList.remove("dragging");
+  const TH = 95;
+  if(drag.dx > TH) commit(+1);
+  else if(drag.dx < -TH) commit(-1);
+  else {
+    // снап назад
+    const card = cardEl();
+    card.classList.add("snap");
+    card.style.transform = "";
+    setTag(0); previewScales(0);
+    setTimeout(()=>card.classList.remove("snap"), 300);
+  }
+}
+
+/* Pointer events (мышь + тач) */
+const stage = document.getElementById("stage");
+stage.addEventListener("pointerdown", e=>onDown(e.clientX));
+window.addEventListener("pointermove", e=>onMove(e.clientX));
+window.addEventListener("pointerup", onUp);
+window.addEventListener("pointercancel", onUp);
+
+/* Кнопки: подсветка превью при наведении + клик */
+const btnNo = document.getElementById("btn-no");
+const btnYes = document.getElementById("btn-yes");
+btnNo.addEventListener("mouseenter", ()=>previewScales(-1));
+btnNo.addEventListener("mouseleave", ()=>previewScales(0));
+btnYes.addEventListener("mouseenter", ()=>previewScales(+1));
+btnYes.addEventListener("mouseleave", ()=>previewScales(0));
+btnNo.addEventListener("click", ()=>commit(-1));
+btnYes.addEventListener("click", ()=>commit(+1));
+
+/* Клавиши ← / → */
+window.addEventListener("keydown", e=>{
+  if(ended){ if(e.key==="Enter") restart(); return; }
+  if(e.key==="ArrowLeft"){ previewScales(-1); commit(-1); }
+  if(e.key==="ArrowRight"){ previewScales(+1); commit(+1); }
+});
+
+/* ---------- Оверлеи и кнопки ---------- */
+function showOverlay(id, show){
+  document.getElementById(id).classList.toggle("show", show);
+}
+function restart(){ showOverlay("ov-end", false); newGame(); }
+
+document.getElementById("btn-start").addEventListener("click", ()=>{ showOverlay("ov-start", false); newGame(); });
+document.getElementById("btn-restart").addEventListener("click", restart);
+document.getElementById("btn-menu").addEventListener("click", backToMenu);
+
+/* Сдаюсь → достижение «Вышел с работы» и экран конца (оттуда — в меню) */
+document.getElementById("btn-quit").addEventListener("click", ()=>{
+  if(ended || busy) return;
+  gameOver("ach_quit");
+});
+
+/* Изи-мод тоггл */
+document.getElementById("easy-toggle").addEventListener("click", ()=> setEasy(!easyOn()) );
+
+/* Выбор эпизода — старт с выбранного сезона */
+function startAtSeason(idx){ showOverlay("ov-start", false); newGame(idx); }
+function renderEpisodes(){
+  const grid = document.getElementById("ep-grid");
+  grid.innerHTML = "";
+  const items = [{i:-1, name:"С начала", sub:"сентябрь · Запуск"}].concat(
+    QUEST_ORDER.map((q,i)=>{
+      const parts = SEASON_NAME[q].split(" · ");
+      return {i, name:parts[1]||q, sub:parts[0]};
+    })
+  );
+  items.forEach(it=>{
+    const b = document.createElement("button");
+    b.className = "ep";
+    b.innerHTML = `${it.name}<small>${it.sub}</small>`;
+    b.addEventListener("click", ()=>startAtSeason(it.i));
+    grid.appendChild(b);
+  });
+}
+
+/* ---------- Старт: показываем дисклеймер ---------- */
+(function init(){
+  // первичная инициализация без запуска (ждём кнопку дисклеймера)
+  stats = {coffee:START, budget:START, boss:START, burn:START};
+  day = 1;
+  render();
+  syncEasyToggle();
+  renderEpisodes();
+  showOverlay("ov-start", true);
+})();
+</script>
+</body>
+</html>
