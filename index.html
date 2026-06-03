@@ -184,6 +184,24 @@
   .toggle.on .sw{background:var(--good)}
   .toggle.on .sw::after{left:23px}
 
+  /* === Полировка: вход карточки, тряска, всплытие дельт, баннер сезона, конфетти === */
+  @keyframes cardIn{from{transform:translateY(16px) scale(.955);opacity:0}to{transform:none;opacity:1}}
+  #card.enter{animation:cardIn .34s cubic-bezier(.2,.8,.3,1)}
+  @keyframes shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-7px)}40%,60%{transform:translateX(7px)}}
+  #app.shaking{animation:shake .42s cubic-bezier(.36,.07,.19,.97)}
+  .delta-float{position:absolute;font-weight:800;font-size:16px;z-index:30;pointer-events:none;
+    text-shadow:0 2px 6px #000;animation:floatUp 1s ease-out forwards;font-variant-numeric:tabular-nums}
+  @keyframes floatUp{0%{opacity:0;transform:translateY(2px) scale(.8)}15%{opacity:1}100%{opacity:0;transform:translateY(-30px) scale(1.05)}}
+  #season-banner{position:absolute;top:46%;left:50%;transform:translate(-50%,-50%) scale(.9);z-index:900;
+    background:linear-gradient(180deg,rgba(40,38,70,.96),rgba(20,18,40,.96));border:1px solid var(--brand-lt);
+    border-radius:16px;padding:16px 24px;text-align:center;box-shadow:var(--shadow);opacity:0;pointer-events:none;
+    transition:opacity .35s, transform .35s}
+  #season-banner.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  #season-banner .sb-k{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--coffee)}
+  #season-banner .sb-n{font-size:19px;font-weight:800;margin-top:3px}
+  .confetti{position:absolute;top:-12px;width:9px;height:14px;border-radius:2px;z-index:1200;pointer-events:none;animation:fall linear forwards}
+  @keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:.2}}
+
   /* Выбор эпизода (главное меню) */
   .episodes{margin-top:12px}
   .episodes h3{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin:0 0 8px;text-align:center}
@@ -245,6 +263,7 @@
   </div>
 
   <div id="toast"></div>
+  <div id="season-banner"><div class="sb-k"></div><div class="sb-n"></div></div>
 
   <!-- Карточка -->
   <div id="stage">
@@ -283,6 +302,11 @@
 
     <div class="toggle" id="easy-toggle">
       <span class="tlabel">🌴 Изи-мод<small>летний режим работы: подсветка эффекта зелёным/красным при наведении</small></span>
+      <span class="sw"></span>
+    </div>
+
+    <div class="toggle" id="mute-toggle">
+      <span class="tlabel">🔊 Звук<small>щелчки выбора, победа/поражение (синтез, без файлов)</small></span>
       <span class="sw"></span>
     </div>
 
@@ -672,6 +696,48 @@ const ACHIEVEMENTS = {
 };
 const SUBS = {win:"Финал учебного года", die:"Game over"};
 
+/* ---------- Звук: синтез через WebAudio (без файлов — игра остаётся одним HTML) ---------- */
+const Sound = (function(){
+  let ctx = null;
+  function ensure(){
+    if(!ctx){ try{ ctx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; } }
+    if(ctx && ctx.state==="suspended") ctx.resume();
+    return ctx;
+  }
+  function muted(){ try{ return localStorage.getItem("dpo_mute")==="1"; }catch(e){ return false; } }
+  function tone(freq,dur,type,vol,slideTo){
+    const c=ensure(); if(!c||muted()) return;
+    const o=c.createOscillator(), g=c.createGain(), t=c.currentTime;
+    o.type=type||"sine"; o.frequency.setValueAtTime(freq,t);
+    if(slideTo) o.frequency.exponentialRampToValueAtTime(slideTo,t+dur);
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(vol||0.16,t+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g).connect(c.destination); o.start(t); o.stop(t+dur+0.03);
+  }
+  function noise(dur,vol,freq,q){
+    const c=ensure(); if(!c||muted()) return;
+    const n=Math.floor(c.sampleRate*dur), buf=c.createBuffer(1,n,c.sampleRate), d=buf.getChannelData(0);
+    for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*(1-i/n);
+    const s=c.createBufferSource(); s.buffer=buf;
+    const bp=c.createBiquadFilter(); bp.type="bandpass"; bp.frequency.value=freq||900; bp.Q.value=q||1;
+    const g=c.createGain(); g.gain.value=vol||0.1;
+    s.connect(bp).connect(g).connect(c.destination); s.start();
+  }
+  return {
+    ensure,
+    swipe(){ noise(0.16,0.09,1400,0.8); },
+    yes(){ tone(523,0.11,"triangle",0.15); setTimeout(()=>tone(784,0.13,"triangle",0.13),55); },
+    no(){ tone(300,0.16,"sawtooth",0.12,170); },
+    flag(){ tone(880,0.08,"square",0.09); setTimeout(()=>tone(1320,0.13,"square",0.09),70); },
+    death(){ tone(220,0.5,"sawtooth",0.17,65); noise(0.4,0.07,260,0.6); },
+    win(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,0.32,"triangle",0.14),i*110)); },
+  };
+})();
+function muteOn(){ try{ return localStorage.getItem("dpo_mute")==="1"; }catch(e){ return false; } }
+function setMute(on){ try{ localStorage.setItem("dpo_mute", on?"1":"0"); }catch(e){} syncMuteToggle(); }
+function syncMuteToggle(){ const t=document.getElementById("mute-toggle"); if(t) t.classList.toggle("on", !muteOn()); }
+
 /* ---------- Сезоны учебного года (§8А.1) ---------- */
 const QUEST_ORDER = ["winter","priority","irao","peter","oleg"];
 const SEASON_NAME = {
@@ -685,7 +751,7 @@ const SEASON_NAME = {
 
 /* ---------- Состояние ---------- */
 const START = 50, MIN = 0, MAX = 100;
-let stats, day, flags, recent, ended, busy, questIdx, questStep, flavorLeft, launchLeft, appliedIntros;
+let stats, day, flags, recent, ended, busy, questIdx, questStep, flavorLeft, launchLeft, appliedIntros, lastSeasonKey;
 
 /* «Прозрение» открывается навсегда после первой победы (хранится в галерее) */
 function prozrenie(){ return getGallery().includes("ach_prozrenie"); }
@@ -696,7 +762,7 @@ function newGame(startIdx){
   questIdx = (startIdx>=0) ? startIdx : 0;
   questStep = 0; flavorLeft = 0;
   launchLeft = (startIdx>=0) ? 0 : 3;   // выбран эпизод → пропускаем онбординг «Запуск»
-  appliedIntros = {};
+  appliedIntros = {}; lastSeasonKey = null;
   current = null;
   document.getElementById("app").classList.remove("ending");
   showOverlay("ov-start", false); // спрячем
@@ -733,6 +799,8 @@ function getQuestCard(q, step){ return CARDS.find(c=>c.quest===q && c.step===ste
 function setSeasonHeader(){
   const key = (questIdx===0 && questStep===0) ? "launch" : QUEST_ORDER[questIdx];
   document.getElementById("season").textContent = SEASON_NAME[key] || SEASON_NAME.launch;
+  if(lastSeasonKey !== null && key !== lastSeasonKey) seasonBanner(key); // смена сезона — баннер
+  lastSeasonKey = key;
 }
 
 function drawNext(){
@@ -804,12 +872,13 @@ function showCard(){
   document.getElementById("c-text").innerHTML = note + esc(c.text);
   document.getElementById("lbl-no").textContent  = c.no.label  || "НЕТ";
   document.getElementById("lbl-yes").textContent = c.yes.label || "ДА";
-  // сброс позиции карточки
+  // сброс позиции карточки + анимация входа
   const card = document.getElementById("card");
-  card.classList.remove("anim","anim-tilt","snap");
+  card.classList.remove("anim","anim-tilt","snap","enter");
   card.style.transform = "";
   card.style.opacity = "1";
   card.classList.toggle("blurred", blind);    // мыло держится всю слепую фазу
+  void card.offsetWidth; card.classList.add("enter");
   setTag(0);
   render();
 }
@@ -862,6 +931,7 @@ function commit(dir){
   const card = document.getElementById("card");
   const opt = dir<0 ? current.no : current.yes;
   previewScales(0); setTag(0);
+  Sound.swipe(); (dir>0 ? Sound.yes() : Sound.no()); vibrate(12);
 
   // лёгкий наклон в сторону выбора — карточка пока на месте
   card.classList.add("anim-tilt");
@@ -873,13 +943,15 @@ function commit(dir){
   // звание «Главного душнилы» выдаётся сразу при выборе «Душнить!»
   if(flags["душнила"] && !getGallery().includes("ach_dushnila")){
     unlockGallery("ach_dushnila");
-    toast("🤓 Звание получено: «Главный душнила»");
+    toast("🤓 Звание получено: «Главный душнила»"); Sound.flag(); vibrate([20,40,20]);
   }
   if(flags["зенит_проиграл"] && current.char==="salk") stats.coffee -= 3; // мрачный шеф после проигрыша
   const fx = opt.fx || {};
   for(const k in fx) stats[k] += fx[k];
   day++;
   render();
+  floatDeltas(fx);
+  if(Object.values(fx).some(v=>Math.abs(v)>=18)){ shakeScreen(); vibrate(30); } // сильный удар
   flashEffect(fx, opt.result);
   const death = checkDeath();
   const lastStep = current.quest && current.step === 5;
@@ -935,6 +1007,54 @@ function flashEffect(fx, text){
   flashEffect._t = setTimeout(()=>el.classList.remove("show"), REVEAL_MS + FLYOUT_MS);
 }
 
+/* тряска экрана при сильном эффекте */
+function shakeScreen(){
+  const a=document.getElementById("app");
+  a.classList.remove("shaking"); void a.offsetWidth; a.classList.add("shaking");
+  setTimeout(()=>a.classList.remove("shaking"), 440);
+}
+/* всплывающие «+N» возле затронутых шкал */
+function floatDeltas(fx){
+  const app=document.getElementById("app"), arect=app.getBoundingClientRect();
+  const col={coffee:"var(--coffee-c)",budget:"var(--budget-c)",boss:"var(--boss-c)",burn:"var(--burn-c)"};
+  for(const k in fx){
+    const sc=document.querySelector(`.scale[data-k="${k}"]`); if(!sc) continue;
+    const r=sc.getBoundingClientRect();
+    const el=document.createElement("div");
+    el.className="delta-float"; el.style.color=col[k];
+    el.textContent=(fx[k]>0?"+":"")+fx[k];
+    el.style.left=(r.left-arect.left+r.width/2-12)+"px";
+    el.style.top=(r.bottom-arect.top+2)+"px";
+    app.appendChild(el);
+    setTimeout(()=>el.remove(), 1050);
+  }
+}
+/* конфетти на победе */
+function confetti(){
+  const app=document.getElementById("app");
+  const cols=["#6b6df0","#d98a4e","#56c596","#e0566b","#e07ba8","#fff"];
+  for(let i=0;i<60;i++){
+    const d=document.createElement("div"); d.className="confetti";
+    d.style.left=Math.random()*100+"%";
+    d.style.background=cols[i%cols.length];
+    d.style.animationDuration=(1.6+Math.random()*1.4)+"s";
+    d.style.animationDelay=(Math.random()*0.4)+"s";
+    app.appendChild(d);
+    setTimeout(()=>d.remove(), 3400);
+  }
+}
+/* баннер смены сезона */
+function seasonBanner(key){
+  const parts=(SEASON_NAME[key]||"").split(" · ");
+  const b=document.getElementById("season-banner");
+  b.querySelector(".sb-k").textContent=parts[0]||"";
+  b.querySelector(".sb-n").textContent=parts[1]||SEASON_NAME[key]||"";
+  b.classList.add("show");
+  clearTimeout(seasonBanner._t);
+  seasonBanner._t=setTimeout(()=>b.classList.remove("show"), 1900);
+}
+function vibrate(p){ try{ if(navigator.vibrate && !muteOn()) navigator.vibrate(p); }catch(e){} }
+
 function checkDeath(){
   // приоритет по первой пробитой шкале
   const order=["coffee","budget","boss","burn"];
@@ -967,6 +1087,8 @@ function gameOver(endId){
   document.getElementById("end-days").textContent = day;
   renderGallery();
   showOverlay("ov-end", true);
+  if(endId.startsWith("win")){ Sound.win(); confetti(); vibrate([30,50,30,50,80]); }
+  else if(endId!=="ach_quit"){ Sound.death(); vibrate([120,40,120]); }
 }
 
 /* ---------- Галерея концовок (localStorage — игра локальная) ---------- */
@@ -1010,21 +1132,27 @@ function render(){
   document.getElementById("scales").classList.toggle("compact", day >= 3);
 }
 
-/* ---------- Свайп / drag ---------- */
-let drag = {active:false, startX:0, dx:0};
+/* ---------- Свайп / drag (с инерцией/fling) ---------- */
+let drag = {active:false, startX:0, dx:0, vx:0, lastX:0, lastT:0};
 const cardEl = () => document.getElementById("card");
 
 function onDown(x){
   if(ended || busy) return;            // во время анимации/узнавания ввод заблокирован
-  drag.active = true; drag.startX = x; drag.dx = 0;
+  Sound.ensure();                       // разблокировать аудио по жесту
+  drag.active = true; drag.startX = x; drag.dx = 0; drag.vx = 0;
+  drag.lastX = x; drag.lastT = performance.now();
   cardEl().classList.add("dragging");
 }
 function onMove(x){
   if(!drag.active) return;
   drag.dx = x - drag.startX;
-  const rot = drag.dx/18;
-  cardEl().style.transform = `translateX(${drag.dx}px) rotate(${rot}deg)`;
+  const now = performance.now(), dt = now - drag.lastT;
+  if(dt > 0){ drag.vx = (x - drag.lastX) / dt; drag.lastX = x; drag.lastT = now; } // px/мс
+  const rot = drag.dx/16;
   const prog = Math.max(-1, Math.min(1, drag.dx/120));
+  const fade = 1 - Math.min(.18, Math.abs(prog)*.18);   // чуть тускнеет к краю
+  cardEl().style.transform = `translateX(${drag.dx}px) rotate(${rot}deg)`;
+  cardEl().style.opacity = fade.toFixed(3);
   setTag(prog);
   previewScales(Math.abs(drag.dx)>14 ? Math.sign(drag.dx) : 0);
 }
@@ -1032,16 +1160,17 @@ function onUp(){
   if(!drag.active) return;
   drag.active = false;
   cardEl().classList.remove("dragging");
-  const TH = 95;
-  if(drag.dx > TH) commit(+1);
-  else if(drag.dx < -TH) commit(-1);
+  const TH = 95, FLING = 0.55;          // порог по сдвигу ИЛИ скорости (fling)
+  const flung = Math.abs(drag.vx) > FLING;
+  if(drag.dx > TH || (flung && drag.vx > 0)) commit(+1);
+  else if(drag.dx < -TH || (flung && drag.vx < 0)) commit(-1);
   else {
-    // снап назад
+    // эластичный возврат
     const card = cardEl();
     card.classList.add("snap");
-    card.style.transform = "";
+    card.style.transform = ""; card.style.opacity = "1";
     setTag(0); previewScales(0);
-    setTimeout(()=>card.classList.remove("snap"), 300);
+    setTimeout(()=>card.classList.remove("snap"), 320);
   }
 }
 
@@ -1087,6 +1216,8 @@ document.getElementById("btn-quit").addEventListener("click", ()=>{
 
 /* Изи-мод тоггл */
 document.getElementById("easy-toggle").addEventListener("click", ()=> setEasy(!easyOn()) );
+/* Звук тоггл (вкл = sw активен) */
+document.getElementById("mute-toggle").addEventListener("click", ()=>{ Sound.ensure(); setMute(!muteOn()); });
 
 /* Выбор эпизода — старт с выбранного сезона */
 function startAtSeason(idx){ showOverlay("ov-start", false); newGame(idx); }
@@ -1115,6 +1246,7 @@ function renderEpisodes(){
   day = 1;
   render();
   syncEasyToggle();
+  syncMuteToggle();
   renderEpisodes();
   showOverlay("ov-start", true);
 })();
