@@ -508,6 +508,37 @@ const CARDS = [
     no:  { label:"Пасс", fx:{boss:+5}, result:"Может, и к лучшему." },
     yes: { label:"Вписаться!", fx:{coffee:+10, burn:+12, budget:-8}, result:"Питч готов, MVP к пятнице, сон отменяется." } },
 
+  /* доп. флавор из реального чата отдела */
+  { id:"F14", quest:null, char:"natalya", loc:"1 корпус",
+    text:"У нас чугунный казан — нужен мастер-класс по плову! Устроим в обед?",
+    no:  { label:"Работаем", fx:{boss:+5}, result:"Казан подождёт." },
+    yes: { label:"Плов!", fx:{coffee:+10, burn:-10, budget:-5}, result:"Запах плова на весь этаж." } },
+
+  { id:"F15", quest:null, char:"anton", loc:"выезд",
+    text:"Офигенный частный музей лося, моим лосям далеко. Грузимся на выезд?",
+    no:  { label:"В другой раз", fx:{boss:+5}, result:"Лоси подождут." },
+    yes: { label:"Едем", fx:{coffee:+10, burn:-10, budget:-8}, result:"Лоси, мемы, культурка." } },
+
+  { id:"F16", quest:null, char:"salk", loc:"столовая",
+    text:"Нашёл сеть «пельменно-блинная Гуленьки». Идём на обед — там, правда, пельменей сказали нет?",
+    no:  { label:"Не идём", fx:{burn:+5}, result:"Остаёмся голодными, но гордыми." },
+    yes: { label:"На блины", fx:{coffee:+8, budget:-5}, result:"Слипшиеся пельмени отправляют в блины." } },
+
+  { id:"F17", quest:null, char:"natalya", loc:"лес",
+    text:"Все грибы — в одну корзину, потом Сергей Владимирович выложит главного грибника. Едем по грибы?",
+    no:  { label:"Работаем", fx:{boss:+5}, result:"Тихая охота отменяется." },
+    yes: { label:"По грибы", fx:{coffee:+10, burn:-12, budget:-5}, result:"inaturalist всё опознал." } },
+
+  { id:"F18", quest:null, char:"anton", loc:"совещание",
+    text:"Предлагаю взять психиатра в штат и устроить групповой сеанс психотерапии. За?",
+    no:  { label:"Терпим", fx:{burn:+8}, result:"Сами справимся… наверное." },
+    yes: { label:"За!", fx:{burn:-10, boss:-8, coffee:+5}, result:"Полегчало, но HR в лёгком шоке." } },
+
+  { id:"F19", quest:null, char:"anton", loc:"Г.3.05",
+    text:"Воспользуемся возможностью упустить возможность провести Масленицу?",
+    no:  { label:"Организуем", fx:{burn:+8, boss:+5}, result:"Блины по расписанию." },
+    yes: { label:"Упустить", fx:{burn:-8, boss:-5}, result:"Мастер откладывания в деле." } },
+
   /* флавор, активируемый флагами прошлых решений (память решений) */
   { id:"FH", quest:null, char:"buh", loc:"Г.3.09", requiresFlag:"chatgpt_отчёт",
     text:"Всплыла галлюцинация из того отчёта ChatGPT — $440 000 из ниоткуда. Срочно правим вручную?",
@@ -633,6 +664,12 @@ const PROMPTS = {
   F11:"Сотрудник с указкой и сводом регламентов тычет в пункт 4.2; коллеги в зуме закатывают глаза, над головой нимб из мелкого шрифта.",
   F12:"Влад с маркером расчерчивает кофемашину по системе 5S, повсюду жёлтые стикеры «бережливо», в глазах — оптимизация всего на свете.",
   F13:"Влад с горящими глазами питчит слайд «кофе-as-a-service», диаграмма роста уходит в потолок, коллеги устало прихлёбывают кофе.",
+  F14:"Наталья над дымящимся чугунным казаном с пловом, рис и морковь, довольная улыбка, фон — коридор 1 корпуса.",
+  F15:"Антон зазывает на выезд, на фоне частный музей с чучелом лося и мемными табличками, все смеются.",
+  F16:"Сергей Владимирович у вывески «пельменно-блинная Гуленьки», на витрине блины и перечёркнутые пельмени, ирония на лице.",
+  F17:"Наталья с большой корзиной грибов в осеннем лесу, рядом гордый «главный грибник», в руке телефон с inaturalist.",
+  F18:"Антон рисует на доске «психиатр в штат», вокруг коллеги сидят в кружок групповой терапии с чашками кофе.",
+  F19:"Антон разводит руками у блёклого плаката «Масленица», блины остывают, вайб великой прокрастинации.",
   FH:"Бухгалтер у монитора с цифрой $440 000, обведённой красным; рядом облачко чат-бота, из которого сыпется бессмыслица.",
   FB:"Сергей Владимирович подпирает гору задач с табличкой «МЫ», под ней — погнувшийся сотрудник.",
   FC:"Лена и коллега неловко чокаются кружками; на фоне тот самый свиток-стих с тучкой.",
@@ -666,7 +703,8 @@ const PROMPTS = {
 */
 const ART = {
   Z1:"", Z2:"", Z3:"", Z4:"", Z5:"",
-  F1:"", F2:"", F3:"", F4:"", F5:"", F6:"", F7:"", F8:"", F9:"", F10:"", F11:"", F12:"", F13:"", FH:"", FB:"", FC:"",
+  F1:"", F2:"", F3:"", F4:"", F5:"", F6:"", F7:"", F8:"", F9:"", F10:"", F11:"", F12:"", F13:"",
+  F14:"", F15:"", F16:"", F17:"", F18:"", F19:"", FH:"", FB:"", FC:"",
   P1:"", P2:"", P3:"", P4:"", P5:"",
   I1:"", I2:"", I3:"", I4:"", I5:"",
   K1:"", K2:"", K3:"", K4:"", K5:"",
@@ -732,6 +770,7 @@ const Sound = (function(){
     flag(){ tone(880,0.08,"square",0.09); setTimeout(()=>tone(1320,0.13,"square",0.09),70); },
     death(){ tone(220,0.5,"sawtooth",0.17,65); noise(0.4,0.07,260,0.6); },
     win(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,0.32,"triangle",0.14),i*110)); },
+    danger(){ tone(990,0.09,"square",0.07); },
   };
 })();
 function muteOn(){ try{ return localStorage.getItem("dpo_mute")==="1"; }catch(e){ return false; } }
@@ -751,7 +790,7 @@ const SEASON_NAME = {
 
 /* ---------- Состояние ---------- */
 const START = 50, MIN = 0, MAX = 100;
-let stats, day, flags, recent, ended, busy, questIdx, questStep, flavorLeft, launchLeft, appliedIntros, lastSeasonKey;
+let stats, day, flags, recent, ended, busy, questIdx, questStep, flavorLeft, launchLeft, appliedIntros, lastSeasonKey, dangerState;
 
 /* «Прозрение» открывается навсегда после первой победы (хранится в галерее) */
 function prozrenie(){ return getGallery().includes("ach_prozrenie"); }
@@ -762,7 +801,7 @@ function newGame(startIdx){
   questIdx = (startIdx>=0) ? startIdx : 0;
   questStep = 0; flavorLeft = 0;
   launchLeft = (startIdx>=0) ? 0 : 3;   // выбран эпизод → пропускаем онбординг «Запуск»
-  appliedIntros = {}; lastSeasonKey = null;
+  appliedIntros = {}; lastSeasonKey = null; dangerState = {};
   current = null;
   document.getElementById("app").classList.remove("ending");
   showOverlay("ov-start", false); // спрячем
@@ -1126,6 +1165,10 @@ function render(){
     sc.querySelector(".val").textContent = Math.round(v);
     const danger = v<=20 || v>=80;
     sc.classList.toggle("danger", danger);
+    if(dangerState){
+      if(danger && !dangerState[k]){ Sound.danger(); vibrate(8); }  // вход в опасную зону
+      dangerState[k] = danger;
+    }
   }
   document.querySelector("#daycount b").textContent = day;
   // подписи-пояснения под шкалами скрываются с 3-го шага (онбординг отыграл)
