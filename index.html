@@ -111,7 +111,7 @@
   }
   #card.dragging{cursor:grabbing;transition:none;will-change:transform}
   #card.anim{will-change:transform}
-  #card.anim{transition:transform .7s cubic-bezier(.2,.7,.3,1),opacity .7s;will-change:transform}
+  #card.anim{transition:transform 1.05s cubic-bezier(.2,.7,.3,1),opacity 1.05s;will-change:transform}
   #card.anim-tilt{transition:transform .32s ease;will-change:transform}
   #card.snap{transition:transform .28s ease}
   .portrait{position:relative;height:clamp(188px,38vh,330px);background:#0a0a12;overflow:hidden}
@@ -168,6 +168,21 @@
   .overlay .disc em{color:var(--coffee);font-style:italic}
   .bigemoji{font-size:54px;text-align:center;margin-bottom:6px;filter:drop-shadow(0 6px 16px rgba(0,0,0,.5))}
   .end-art{width:150px;height:150px;object-fit:cover;border-radius:18px;border:1px solid var(--line);box-shadow:var(--shadow)}
+  /* полноэкранный сплэш концовки */
+  #ov-splash{justify-content:center;align-items:center;text-align:center;z-index:1300;background:#0a0a12;cursor:pointer}
+  .splash-emoji{font-size:92px;margin-bottom:10px;filter:drop-shadow(0 8px 24px rgba(0,0,0,.6))}
+  .splash-art{width:min(72vw,300px);height:min(72vw,300px);object-fit:cover;border-radius:24px;border:1px solid var(--line);box-shadow:var(--shadow)}
+  #ov-splash h1{font-size:32px;margin:8px 0 2px;line-height:1.1}
+  #ov-splash h2{font-size:15px;color:var(--brand-lt);margin:0}
+  .splash-hint{margin-top:24px;font-size:12px;color:var(--muted);animation:spulse 1.4s infinite}
+  @keyframes spulse{0%,100%{opacity:.35}50%{opacity:1}}
+  /* блок «цель» на главном экране + правила */
+  .goal{background:rgba(69,71,187,.12);border:1px solid var(--brand);border-radius:12px;
+    padding:11px 14px;margin-top:10px;font-size:12.5px;line-height:1.45;color:#dfe0f5}
+  .goal b{color:var(--brand-lt)}
+  #ov-rules{justify-content:center}
+  #ov-rules .rule{display:flex;gap:10px;align-items:flex-start;margin:10px 0;font-size:14px;line-height:1.4}
+  #ov-rules .rule .ic{font-size:22px;flex:0 0 auto;line-height:1}
   .btn{background:linear-gradient(180deg,var(--brand-lt),var(--brand));color:#fff;border:0;border-radius:14px;
     padding:15px;font-size:16px;font-weight:700;cursor:pointer;width:100%;margin-top:8px;
     box-shadow:0 10px 26px rgba(69,71,187,.45);transition:transform .12s,filter .15s}
@@ -276,6 +291,8 @@
     #ov-start .ep small{font-size:9px}
     #ov-start .ep-grid{gap:5px}
     #ov-start .stat-line{margin-top:5px}
+    #ov-start .goal{padding:8px 11px;font-size:11px;line-height:1.35;margin-top:6px}
+    #ov-rules .rule{margin:7px 0;font-size:13px}
   }
 </style>
 </head>
@@ -332,6 +349,8 @@
       Эта игра — любовное письмо отделу, написанное его же сообщениями. Если вы узнали себя — поздравляем, вы канонический персонаж. Если не узнали — значит, вы Дмитрий Сачава, и все в шоке, что вы ещё живы.<br><br>
       <em>Материалы игры подготовлены без поддержки гранта Минобрнауки, в рамках Десятилетия прокрастинации и технологий.</em>
     </div>
+    <div class="goal">🎯 <b>Цель:</b> ты новый сотрудник Центра ДПО. Балансируй 4 ресурса отдела и доживи до отчёта (июнь). Две кнопки — <b>НЕТ</b> / <b>ДА</b>, любой выбор двигает шкалы. Если любая упадёт в 0 или взлетит в 100 — конец.</div>
+
     <button class="btn" id="btn-start">Начать рабочий день</button>
 
     <div class="toggle" id="easy-toggle">
@@ -368,6 +387,26 @@
       <h3 style="margin-top:16px">Звания</h3>
       <div class="gal-grid" id="gal-ach"></div>
     </div>
+  </div>
+
+  <!-- Правила/цель (после «Начать») -->
+  <div class="overlay" id="ov-rules">
+    <h1>Как играть</h1>
+    <h2>Центр ДПО · выживи до отчёта</h2>
+    <div class="rule"><span class="ic">🎯</span><span><b>Задача — балансировка рабочего дня.</b> Ты новый сотрудник. Каждый день приходят люди, документы и «прекрасные возможности». Доживи до отчёта в июне.</span></div>
+    <div class="rule"><span class="ic">👈👉</span><span>На каждой карточке — выбор: <b>НЕТ</b> (влево) или <b>ДА</b> (вправо). Тяни карточку, жми стрелки или кнопки.</span></div>
+    <div class="rule"><span class="ic">📊</span><span>4 шкалы: ☕ Кофе · 💰 Бюджет · 👔 Лояльность боссов · 🔥 Выгорание. Старт 50. Лечишь одно — ломаешь другое.</span></div>
+    <div class="rule"><span class="ic">💀</span><span>Если <b>любая</b> шкала упадёт в <b>0</b> или взлетит в <b>100</b> — конец. Иконки сверху подсветятся, куда дёрнет выбор.</span></div>
+    <div class="rule"><span class="ic">🏆</span><span>Пройди сезоны (Зимний университет, Приоритет-2030, ИРАО, Пётр, отчёт Олегу) и доживи до июня — год прожит.</span></div>
+    <button class="btn" id="btn-rules-go">Поехали 🚀</button>
+  </div>
+
+  <!-- Полноэкранный сплэш концовки (5с, либо тап) -->
+  <div class="overlay" id="ov-splash">
+    <div class="splash-emoji" id="splash-emoji"></div>
+    <h1 id="splash-title"></h1>
+    <h2 id="splash-sub"></h2>
+    <div class="splash-hint">нажми, чтобы продолжить…</div>
   </div>
 
 </div>
@@ -467,7 +506,7 @@ const CARDS = [
 
   { id:"Z5", quest:"winter", step:5, char:"socio", loc:"«Москва»",
     text:"Социоцентр: пригласите для сдачи сотрудника. Отправляете Сергея Владимировича?",
-    no:  { label:"Антон / новичок", fx:{boss:-12, burn:+10}, setFlags:["провал_winter"],
+    no:  { label:"Андрей / новичок", fx:{boss:-12, burn:+10}, setFlags:["провал_winter"],
            result:"Зимний университет сдали со скрипом — Олег недоволен." },
     yes: { label:"Сергей В.", fx:{boss:+8, coffee:+6},
            result:"Зимний университет закрыт! Миша уже спрашивает про безалкогольные напитки." } },
@@ -592,8 +631,8 @@ const CARDS = [
 
   /* ===== КВЕСТ «ПРИОРИТЕТ-2030» P1–P5 (опасная 🔥) ===== */
   { id:"P1", quest:"priority", step:1, char:"borovkov", loc:"Г.3.09",
-    text:"Прекрасная возможность: входим в «Приоритет-2030». Цифровые двойники, технологическое лидерство. Берём?",
-    no:  { label:"Отказать", fx:{boss:-22}, result:"Так нельзя — это директор." },
+    text:"Прекрасная возможность: входим в «Приоритет-2030». Цифровые двойники, технологическое лидерство. Берём? (директору не отказывают)",
+    no:  { label:"Отказать директору", end:"die_fired", result:"Боровков молча кивнул. Это была не та возможность, чтобы отказываться…" },
     yes: { label:"Берём", fx:{budget:+18, burn:+18, boss:+10}, result:"Возможность, от которой не отказаться." } },
   { id:"P2", quest:"priority", step:2, char:"salk", loc:"Г.3.09",
     text:"Делим задачи. Берём всё на наш отдел, чтобы выглядеть героями?",
@@ -758,6 +797,7 @@ const ENDINGS = {
   die_boss_100:   {emoji:"👔", title:"Вы теперь Олег", text:"Вас повысили. Теперь вы — Олег. Отчёты будут вечно."},
   die_burn_100:   {emoji:"🔥", title:"Сгорел в дедлайнах", text:"АУП сгорел в дедлайнах. Весь отдел ушёл в отпуск по уходу за нервами."},
   die_burn_0:     {emoji:"😴", title:"Расслабон до нуля", text:"Никто ничего не делает, дедлайны прошли мимо, про зарплату все дружно забыли. Отдел сидит голожопый, но довольный."},
+  die_fired:      {emoji:"📦", title:"Вы уволены", text:"Вы отказали директору Боровкову на «Приоритет-2030». Прекрасная возможность была не для отказа. На следующий день вы собирали коробку. Из ДПО так не выходят — только выносят."},
   die_dushnila:   {emoji:"🤓", title:"Главный душнила", text:"Вы задушнили всех до молекул и сами стали тем, кого боялись. Регламент присвоил ВАМ звание главного душнилы отдела. Теперь к вам приходят уточнять формулировку пункта 4.2 — навечно."},
   win_triumph:    {emoji:"🏆", title:"ГОД ПРОЖИТ", text:"Вы дожили до отчёта. Социоцентр принял итог, отдел жив, кофе не кончился, Олег почти улыбнулся. Зимний университет, Приоритет-2030, ИРАО и Пётр — позади. Учебный год Центра ДПО выжит начисто."},
   win_skripom:    {emoji:"📋", title:"Дожили со скрипом", text:"Год дотянули, но на честном слове и кофеине. Комиссия хмурилась, Олег точил карандаш — однако отдел жив. До следующего сентября."},
@@ -827,7 +867,7 @@ const SEASON_NAME = {
 
 /* ---------- Состояние ---------- */
 const START = 50, MIN = 0, MAX = 100;
-let stats, day, flags, recent, ended, busy, questIdx, questStep, flavorLeft, launchLeft, appliedIntros, lastSeasonKey, dangerState;
+let stats, day, flags, recent, ended, busy, questIdx, questStep, flavorLeft, launchLeft, appliedIntros, lastSeasonKey, dangerState, shownFlavor, lastFlavorId;
 
 /* «Прозрение» открывается навсегда после первой победы (хранится в галерее) */
 function prozrenie(){ return getGallery().includes("ach_prozrenie"); }
@@ -838,7 +878,7 @@ function newGame(startIdx){
   questIdx = (startIdx>=0) ? startIdx : 0;
   questStep = 0; flavorLeft = 0;
   launchLeft = (startIdx>=0) ? 0 : 3;   // выбран эпизод → пропускаем онбординг «Запуск»
-  appliedIntros = {}; lastSeasonKey = null; dangerState = {};
+  appliedIntros = {}; lastSeasonKey = null; dangerState = {}; shownFlavor = []; lastFlavorId = null;
   current = null;
   document.getElementById("app").classList.remove("ending");
   showOverlay("ov-start", false); // спрячем
@@ -900,13 +940,18 @@ function drawNext(){
 }
 
 function pickFlavor(){
-  // только флавор; карточки с requiresFlag — лишь если флаг выставлен (память решений)
+  // только флавор; requiresFlag-карты — лишь если флаг выставлен (память решений)
   const pool = CARDS.filter(c => c.quest===null && (!c.requiresFlag || flags[c.requiresFlag]));
-  const block = recent.slice(-Math.min(6, pool.length-1));
-  let avail = pool.filter(c=>!block.includes(c.id));
-  if(avail.length===0) avail = pool;
+  let avail = pool.filter(c=>!shownFlavor.includes(c.id));   // каждую показываем 1 раз
+  if(avail.length===0){
+    // весь флавор-контент исчерпан — честно предупреждаем и перетасовываем
+    toast("📭 Случаи кончились! Чтобы появились новые — не работай, посиди в чатике 😉");
+    shownFlavor = [];
+    avail = pool.filter(c=>c.id!==lastFlavorId);             // только не тот же сразу
+    if(avail.length===0) avail = pool;
+  }
   const card = avail[Math.floor(rand()*avail.length)];
-  recent.push(card.id);
+  shownFlavor.push(card.id); lastFlavorId = card.id;
   return card;
 }
 
@@ -997,8 +1042,8 @@ function setTag(progress){ // progress -1..1
    показываем дельты ресурсов и текст результата → пауза на чтение →
    карточка медленно улетает (×2 к прежней скорости) → следующая.
 */
-const REVEAL_MS = 1150;  // пауза «узнавания» и чтения эффекта
-const FLYOUT_MS = 700;   // полёт карточки (в 2 раза медленнее прежних 350мс)
+const REVEAL_MS = 1725;  // пауза «узнавания»/чтения эффекта (замедлено ×1.5)
+const FLYOUT_MS = 1050;  // полёт карточки
 
 function commit(dir){
   if(ended || !current || busy) return;
@@ -1028,9 +1073,10 @@ function commit(dir){
   floatDeltas(fx);
   if(Object.values(fx).some(v=>Math.abs(v)>=18)){ shakeScreen(); vibrate(30); } // сильный удар
   flashEffect(fx, opt.result);
-  const death = checkDeath();
+  const forcedEnd = opt.end;                              // карта может форсить концовку (напр. отказ директору)
+  const death = forcedEnd ? null : checkDeath();
   const lastStep = current.quest && current.step === 5;
-  const isGrandFinale = lastStep && current.quest === "oleg";
+  const isGrandFinale = lastStep && current.quest === "oleg" && !forcedEnd;
 
   setTimeout(()=>{
     // медленный вылет
@@ -1041,6 +1087,7 @@ function commit(dir){
     card.style.opacity = "0";
     setTimeout(()=>{
       busy = false;
+      if(forcedEnd){ gameOver(forcedEnd); return; }       // мгновенная концовка
       if(death){ gameOver(death); return; }
       if(isGrandFinale){ resolveGrandFinale(); return; }   // дожил до отчёта — финал года
       if(lastStep){ advanceQuest(); }                       // квест закрыт — следующий сезон
@@ -1049,8 +1096,13 @@ function commit(dir){
   }, REVEAL_MS);
 }
 
-/* квест пройден (шаг 5) — переходим к следующему сезону */
+/* квест пройден (шаг 5) — фидбэк + переход к следующему сезону */
 function advanceQuest(){
+  const prev = QUEST_ORDER[questIdx];
+  const nm = (SEASON_NAME[prev]||prev).split(" · ")[1] || prev;
+  const failed = flags["провал_"+prev];
+  toast(failed ? `⚠️ Эпизод со скрипом: ${nm}` : `✔️ Эпизод пройден: ${nm}`);
+  Sound.flag();
   questIdx++;
   questStep = 0;
   flavorLeft = 1 + Math.floor(rand()*2); // 1–2 флавора-передышки между квестами
@@ -1150,21 +1202,42 @@ function gameOver(endId){
   ended = true;
   document.getElementById("app").classList.add("ending");
   const e = ENDINGS[endId] || ACHIEVEMENTS[endId];
+  const win = endId.startsWith("win");
   unlockGallery(endId);
-  if(endId.startsWith("win")){           // любая победа открывает «Прозрение» навсегда
-    unlockGallery("ach_prozrenie");
-  }
+  if(win) unlockGallery("ach_prozrenie");   // любая победа открывает «Прозрение» навсегда
   if(flags["душнила"]) unlockGallery("ach_dushnila");
+
+  // 1) полноэкранный сплэш концовки на 5с (или тап) → 2) подробная панель
+  const splash = document.getElementById("ov-splash");
+  const semoji = document.getElementById("splash-emoji");
+  if(END_ART[endId]) semoji.innerHTML = `<img class="splash-art" src="${END_ART[endId]}" alt="">`;
+  else semoji.textContent = e.emoji;
+  document.getElementById("splash-title").textContent = e.title;
+  document.getElementById("splash-sub").textContent = win ? SUBS.win : SUBS.die;
+  showOverlay("ov-splash", true);
+  if(win){ Sound.win(); confetti(); vibrate([30,50,30,50,80]); }
+  else if(endId!=="ach_quit"){ Sound.death(); vibrate([120,40,120]); }
+
+  let proceeded = false;
+  const proceed = ()=>{
+    if(proceeded) return; proceeded = true;
+    clearTimeout(gameOver._t);
+    splash.removeEventListener("click", proceed);
+    showOverlay("ov-splash", false);
+    fillEndPanel(endId, e, win);
+    showOverlay("ov-end", true);
+  };
+  splash.addEventListener("click", proceed);
+  gameOver._t = setTimeout(proceed, 5000);
+}
+function fillEndPanel(endId, e, win){
   if(END_ART[endId]) document.getElementById("end-emoji").innerHTML = `<img class="end-art" src="${END_ART[endId]}" alt="">`;
   else document.getElementById("end-emoji").textContent = e.emoji;
   document.getElementById("end-title").textContent = e.title;
-  document.getElementById("end-sub").textContent = endId.startsWith("win") ? SUBS.win : SUBS.die;
+  document.getElementById("end-sub").textContent = win ? SUBS.win : SUBS.die;
   document.getElementById("end-text").textContent = e.text;
   document.getElementById("end-days").textContent = day;
   renderGallery();
-  showOverlay("ov-end", true);
-  if(endId.startsWith("win")){ Sound.win(); confetti(); vibrate([30,50,30,50,80]); }
-  else if(endId!=="ach_quit"){ Sound.death(); vibrate([120,40,120]); }
 }
 
 /* ---------- Галерея концовок (localStorage — игра локальная) ---------- */
@@ -1284,7 +1357,8 @@ function showOverlay(id, show){
 }
 function restart(){ showOverlay("ov-end", false); newGame(); }
 
-document.getElementById("btn-start").addEventListener("click", ()=>{ showOverlay("ov-start", false); newGame(); });
+document.getElementById("btn-start").addEventListener("click", ()=>{ Sound.ensure(); showOverlay("ov-start", false); showOverlay("ov-rules", true); });
+document.getElementById("btn-rules-go").addEventListener("click", ()=>{ showOverlay("ov-rules", false); newGame(); });
 document.getElementById("btn-restart").addEventListener("click", restart);
 document.getElementById("btn-menu").addEventListener("click", backToMenu);
 
