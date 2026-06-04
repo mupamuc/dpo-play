@@ -116,8 +116,7 @@
   .portrait svg{width:100%;height:100%;display:block;opacity:.42;transition:filter .9s ease, transform .9s ease, opacity .6s ease}
   .portrait img.art{width:100%;height:100%;object-fit:cover;display:block;transition:filter .9s ease, transform .9s ease}
   #card.has-art .prompt-box{display:none}        /* есть фото — текст промта не нужен */
-  /* «новенький не понимает, кто есть кто»: мыло держится всю слепую фазу, спадает после выбора */
-  #card.blurred .portrait svg, #card.blurred .portrait img.art{filter:blur(11px) saturate(.7);transform:scale(1.1)}
+  /* блюр на портрете отключён по запросу — картинки/силуэт всегда чёткие */
   .redact{color:var(--coffee);font-weight:700;letter-spacing:1px;background:rgba(217,138,78,.14);
     border-radius:5px;padding:0 5px}                /* «???» вместо имени в слепой фазе */
   .portrait .vign{position:absolute;inset:0;background:radial-gradient(120% 80% at 50% 30%,transparent 35%,rgba(0,0,0,.7) 100%);pointer-events:none}
